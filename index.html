@@ -3,63 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#080C14">
-  <meta name="description" content="Web Bluetooth Controller สำหรับสวิตช์อัจฉริยะ ESP32-C6 รองรับการตั้งเวลานับถอยหลังและ PWA ออฟไลน์">
+  <meta name="theme-color" content="#0B0F19">
+  <meta name="description" content="Web Bluetooth Controller สำหรับสวิตช์อัจฉริยะ ESP32-C6 สไตล์ Neumorphism ผสม Glassmorphism">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SmartSwitch">
   
-  <title>Smart Switch C6 - Smart Home BLE</title>
+  <title>Smart Switch C6 - Neumorphic Glass Controller</title>
 
   <!-- PWA Manifest & Icons -->
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <link rel="apple-touch-icon" href="./icon-192.png">
 
-  <!-- Modern Typography (Plus Jakarta Sans) -->
+  <!-- Typography (Plus Jakarta Sans & JetBrains Mono) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
   <style>
     /* ----------------------------------------------------
-       CSS DESIGN TOKENS (Modern Dark Glassmorphism)
-       Recommended by ui-ux-pro-max
+       DESIGN TOKENS: NEUMORPHISM × GLASSMORPHISM FUSION
+       Curated by /ui-ux-pro-max
     ---------------------------------------------------- */
     :root {
-      --bg-base: #080C14;
-      --surface-glass: rgba(18, 24, 38, 0.75);
-      --surface-glass-card: rgba(22, 30, 48, 0.65);
-      --surface-glass-border: rgba(255, 255, 255, 0.08);
-      --surface-glass-border-hover: rgba(255, 255, 255, 0.18);
-      
+      /* Base & Surfaces */
+      --bg-base: #0B0F19;
+      --neu-dark: #05080F;
+      --neu-surface: #141A29;
+      --glass-surface: rgba(20, 27, 43, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-border-hover: rgba(255, 255, 255, 0.18);
+      --glass-highlight: rgba(255, 255, 255, 0.12);
+
+      /* Dual-Light Neumorphic Shadows for Dark Mode */
+      --neu-shadow-convex: 8px 8px 20px #060910, -6px -6px 16px rgba(255, 255, 255, 0.035);
+      --neu-shadow-card: 14px 14px 32px #05070D, -10px -10px 28px rgba(255, 255, 255, 0.03);
+      --neu-shadow-inset: inset 5px 5px 12px #05070D, inset -5px -5px 12px rgba(255, 255, 255, 0.035);
+      --neu-shadow-bezel: inset 9px 9px 22px #04060A, inset -7px -7px 18px rgba(255, 255, 255, 0.04);
+
+      /* Typography */
       --text-primary: #F8FAFC;
       --text-secondary: #94A3B8;
       --text-muted: #64748B;
-      
+
+      /* States & Illuminations */
       --state-on: #22C55E;
       --state-on-glow: rgba(34, 197, 94, 0.45);
       --state-on-subtle: rgba(34, 197, 94, 0.12);
-      --state-on-dark: #15803D;
-
-      --state-off: #475569;
-      --state-off-glow: rgba(71, 85, 105, 0.25);
-      --state-off-dark: #0F172A;
+      --state-on-gradient: radial-gradient(circle at 35% 30%, #22C55E 0%, #15803D 65%, #0F5128 100%);
+      --state-off-gradient: linear-gradient(145deg, #1A2338, #101624);
 
       --ble-connected: #10B981;
       --ble-connecting: #F59E0B;
       --ble-disconnected: #EF4444;
+      --accent-cyan: #06B6D4;
 
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
+      /* Radii & Fonts */
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 28px;
       --radius-full: 9999px;
 
       --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
 
-      --shadow-card: 0 16px 40px -8px rgba(0, 0, 0, 0.5);
-      --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-smooth: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     /* ----------------------------------------------------
@@ -81,16 +90,16 @@
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 20px) 16px;
+      padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 24px) 16px;
       overflow-x: hidden;
+      /* Ambient subtle background mesh with physical depth */
       background-image: 
-        radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.08) 0%, transparent 55%),
-        radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.06) 0%, transparent 45%),
-        radial-gradient(circle at 15% 75%, rgba(139, 92, 246, 0.05) 0%, transparent 45%);
+        radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 85% 25%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 15% 80%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
       background-attachment: fixed;
     }
 
-    /* Prevent text selection during rapid button clicks */
     button, .badge, .preset-btn {
       user-select: none;
       -webkit-user-select: none;
@@ -107,49 +116,62 @@
     }
 
     /* ----------------------------------------------------
-       GLASSMORPHIC CARDS & PANELS
+       NEUMORPHISM × GLASSMORPHISM HYBRID CARD
     ---------------------------------------------------- */
-    .glass-card {
-      background: var(--surface-glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--surface-glass-border);
+    .glass-neu-card {
+      background: var(--glass-surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
       border-radius: var(--radius-lg);
-      padding: 20px;
-      box-shadow: var(--shadow-card);
+      padding: 22px;
+      box-shadow: var(--neu-shadow-card);
+      position: relative;
+      overflow: hidden;
       transition: var(--transition-smooth);
     }
 
-    .glass-card:hover {
-      border-color: var(--surface-glass-border-hover);
+    /* Specular glass reflection bar across card header */
+    .glass-neu-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+      pointer-events: none;
     }
 
     /* ----------------------------------------------------
-       HEADER & CONNECTION STATUS BAR
+       HEADER & STATUS BAR
     ---------------------------------------------------- */
     .app-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 18px;
+      padding: 14px 18px;
       border-radius: var(--radius-md);
-      background: rgba(18, 24, 38, 0.85);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--surface-glass-border);
+      background: var(--glass-surface);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--neu-shadow-card);
     }
 
     .brand-group {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
+    /* Neumorphic Extruded Icon Box */
     .brand-icon-box {
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
       border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(6, 182, 212, 0.1));
-      border: 1px solid rgba(34, 197, 94, 0.3);
+      background: linear-gradient(145deg, #182032, #101625);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 4px 4px 10px #060910, -3px -3px 8px rgba(255, 255, 255, 0.03);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -168,9 +190,10 @@
     .badge-chip {
       font-size: 0.65rem;
       font-weight: 700;
-      padding: 2px 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 4px;
+      padding: 2px 7px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
       color: var(--text-secondary);
       letter-spacing: 0.04em;
     }
@@ -181,17 +204,18 @@
       gap: 8px;
     }
 
-    /* Connection Status Badge */
+    /* Inset Neumorphic Status Pill */
     .status-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 12px;
+      padding: 7px 14px;
       border-radius: var(--radius-full);
       font-size: 0.78rem;
       font-weight: 600;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid var(--surface-glass-border);
+      background: #0E1320;
+      box-shadow: inset 3px 3px 6px #04060A, inset -3px -3px 6px rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--glass-border);
       transition: var(--transition-smooth);
     }
 
@@ -205,8 +229,8 @@
     }
 
     .status-badge.connected {
-      border-color: rgba(16, 185, 129, 0.3);
       color: #A7F3D0;
+      border-color: rgba(16, 185, 129, 0.3);
     }
     .status-badge.connected .status-dot {
       background-color: var(--ble-connected);
@@ -215,8 +239,8 @@
     }
 
     .status-badge.connecting {
-      border-color: rgba(245, 158, 11, 0.3);
       color: #FDE68A;
+      border-color: rgba(245, 158, 11, 0.3);
     }
     .status-badge.connecting .status-dot {
       background-color: var(--ble-connecting);
@@ -225,8 +249,8 @@
     }
 
     .status-badge.disconnected {
-      border-color: rgba(239, 68, 68, 0.25);
       color: var(--text-secondary);
+      border-color: rgba(239, 68, 68, 0.2);
     }
     .status-badge.disconnected .status-dot {
       background-color: var(--ble-disconnected);
@@ -235,15 +259,15 @@
 
     @keyframes pulse-dot {
       0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.3); opacity: 0.7; }
+      50% { transform: scale(1.35); opacity: 0.7; }
     }
 
     @keyframes blink-dot {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+      50% { opacity: 0.25; }
     }
 
-    /* Action Buttons */
+    /* Neumorphic Extruded Button */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -256,109 +280,110 @@
       font-size: 0.85rem;
       font-weight: 600;
       border-radius: var(--radius-md);
-      border: 1px solid transparent;
       cursor: pointer;
       outline: none;
       transition: var(--transition-smooth);
     }
 
     .btn:focus-visible {
-      box-shadow: 0 0 0 2px var(--state-on);
+      box-shadow: 0 0 0 3px var(--state-on);
     }
 
     .btn-ble {
-      background: rgba(34, 197, 94, 0.12);
-      border-color: rgba(34, 197, 94, 0.3);
+      background: linear-gradient(145deg, #162033, #0F1626);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      box-shadow: 4px 4px 10px #060910, -3px -3px 8px rgba(255, 255, 255, 0.035);
       color: #86EFAC;
     }
     .btn-ble:hover {
-      background: rgba(34, 197, 94, 0.2);
-      border-color: rgba(34, 197, 94, 0.5);
-      box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+      border-color: rgba(34, 197, 94, 0.45);
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.25), 4px 4px 10px #060910;
     }
     .btn-ble:active {
       transform: scale(0.96);
+      box-shadow: inset 3px 3px 7px #04060A, inset -3px -3px 7px rgba(255, 255, 255, 0.04);
     }
 
     .btn-ble.is-connected {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.25);
+      background: linear-gradient(145deg, #24141A, #180D12);
+      border-color: rgba(239, 68, 68, 0.3);
       color: #FCA5A5;
+      box-shadow: 4px 4px 10px #060910, -3px -3px 8px rgba(255, 255, 255, 0.03);
     }
     .btn-ble.is-connected:hover {
-      background: rgba(239, 68, 68, 0.18);
-      border-color: rgba(239, 68, 68, 0.4);
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
     }
 
     /* ----------------------------------------------------
-       HERO SWITCH CARD (CENTER INTERACTIVE ELEMENT)
+       HERO NEUMORPHIC BEZEL & SWITCH
     ---------------------------------------------------- */
     .hero-switch-card {
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 36px 20px 28px 20px;
-      position: relative;
-      overflow: hidden;
       text-align: center;
     }
 
-    .hero-switch-card::before {
-      content: '';
-      position: absolute;
-      top: -50px;
-      width: 260px;
-      height: 260px;
+    /* Concave Inset Bezel Socket (Physical Bed for Switch) */
+    .switch-bezel-socket {
+      width: 206px;
+      height: 206px;
       border-radius: 50%;
-      background: radial-gradient(circle, var(--state-on-subtle) 0%, transparent 70%);
+      background: #0D121F;
+      box-shadow: var(--neu-shadow-bezel);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin: 10px 0 24px 0;
+      transition: all 0.35s ease;
+    }
+
+    /* When ON: Bezel glows from inside */
+    .is-on .switch-bezel-socket {
+      box-shadow: 
+        inset 8px 8px 22px #04060A,
+        inset -6px -6px 18px rgba(34, 197, 94, 0.2),
+        0 0 35px rgba(34, 197, 94, 0.22);
+      border-color: rgba(34, 197, 94, 0.28);
+    }
+
+    /* Ambient Pulsing Glow behind Button */
+    .glow-ambient-pulse {
+      position: absolute;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--state-on-glow) 0%, transparent 70%);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.4s ease;
     }
 
-    .hero-switch-card.is-on::before {
-      opacity: 1;
+    .is-on .glow-ambient-pulse {
+      opacity: 0.8;
+      animation: pulse-ambient 3s infinite alternate ease-in-out;
     }
 
-    .switch-wrapper {
-      position: relative;
-      margin: 10px 0 24px 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    @keyframes pulse-ambient {
+      0% { transform: scale(0.96); opacity: 0.5; }
+      100% { transform: scale(1.08); opacity: 0.9; }
     }
 
-    /* Outer Halo / Pulse Ring */
-    .glow-ring {
-      position: absolute;
-      width: 196px;
-      height: 196px;
-      border-radius: 50%;
-      border: 2px dashed rgba(255, 255, 255, 0.05);
-      pointer-events: none;
-      transition: var(--transition-smooth);
-    }
-
-    .is-on .glow-ring {
-      border: 2px solid rgba(34, 197, 94, 0.35);
-      box-shadow: 0 0 35px var(--state-on-glow), inset 0 0 20px rgba(34, 197, 94, 0.15);
-      animation: rotate-ring 25s linear infinite;
-    }
-
-    @keyframes rotate-ring {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Main Big Touch Switch Button */
+    /* Floating Neumorphic Glass Button */
     .master-switch-btn {
-      width: 156px;
-      height: 156px;
+      width: 160px;
+      height: 160px;
       border-radius: 50%;
       position: relative;
       z-index: 2;
-      border: 2px solid var(--surface-glass-border);
-      background: radial-gradient(circle at 40% 30%, #1E293B, #0F172A);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--state-off-gradient);
+      box-shadow: var(--neu-shadow-convex);
       color: var(--text-muted);
       cursor: pointer;
       display: flex;
@@ -366,18 +391,31 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.05);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
       outline: none;
+    }
+
+    /* Specular curved glass glare */
+    .btn-glass-glare {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
+      border-radius: 50% 50% 0 0;
+      pointer-events: none;
     }
 
     .master-switch-btn:hover {
       transform: scale(1.02);
-      border-color: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.16);
     }
 
+    /* Pressed / Inset State */
     .master-switch-btn:active {
       transform: scale(0.94);
+      box-shadow: var(--neu-shadow-inset) !important;
     }
 
     .master-switch-btn:focus-visible {
@@ -385,14 +423,15 @@
     }
 
     /* ON State Appearance */
-    .hero-switch-card.is-on .master-switch-btn {
-      background: radial-gradient(circle at 35% 30%, #22C55E, #15803D 85%);
-      border-color: #86EFAC;
+    .is-on .master-switch-btn {
+      background: var(--state-on-gradient);
+      border-color: rgba(255, 255, 255, 0.35);
       color: #FFFFFF;
       box-shadow: 
         0 0 45px var(--state-on-glow),
-        0 12px 35px rgba(21, 128, 61, 0.5),
-        inset 0 2px 8px rgba(255, 255, 255, 0.4);
+        8px 8px 24px rgba(0, 0, 0, 0.55),
+        -6px -6px 18px rgba(34, 197, 94, 0.28),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.65);
     }
 
     .power-icon {
@@ -405,18 +444,18 @@
     }
 
     .is-on .power-icon {
-      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.85));
     }
 
     .switch-state-text {
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      opacity: 0.9;
+      opacity: 0.95;
     }
 
-    /* State Metadata Label below button */
+    /* Status Label Below Button */
     .switch-status-label {
       font-size: 1.15rem;
       font-weight: 700;
@@ -432,17 +471,18 @@
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background-color: var(--state-off);
+      background-color: var(--text-muted);
+      box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5);
       transition: var(--transition-smooth);
     }
 
     .is-on .switch-state-indicator {
       background-color: var(--state-on);
-      box-shadow: 0 0 12px var(--state-on);
+      box-shadow: 0 0 14px var(--state-on);
     }
 
     .device-name-hint {
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       color: var(--text-secondary);
       display: flex;
       align-items: center;
@@ -479,43 +519,50 @@
       color: var(--accent-cyan);
     }
 
-    /* Timer Presets Grid */
+    /* Neumorphic Preset Buttons */
     .presets-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      gap: 10px;
     }
 
     .preset-btn {
-      min-height: 44px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--surface-glass-border);
+      min-height: 48px;
+      background: linear-gradient(145deg, #171E2E, #111724);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: var(--radius-sm);
-      color: var(--text-primary);
+      color: var(--text-secondary);
       font-family: var(--font-main);
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
-      transition: var(--transition-smooth);
+      box-shadow: 4px 4px 10px #060910, -3px -3px 8px rgba(255, 255, 255, 0.03);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .preset-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
     }
 
     .preset-btn:active {
-      transform: scale(0.95);
+      transform: scale(0.96);
+      box-shadow: inset 3px 3px 6px #05080E, inset -3px -3px 6px rgba(255, 255, 255, 0.03);
     }
 
+    /* Active Debossed Pill */
     .preset-btn.active {
-      background: rgba(6, 182, 212, 0.15);
-      border-color: var(--accent-cyan);
+      background: #0E1422;
+      border-color: rgba(6, 182, 212, 0.4);
       color: #67E8F9;
-      box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
+      box-shadow: 
+        inset 4px 4px 8px #05080E,
+        inset -4px -4px 8px rgba(6, 182, 212, 0.15),
+        0 0 16px rgba(6, 182, 212, 0.2);
     }
 
     /* Active Countdown Display */
@@ -523,11 +570,12 @@
       display: none;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: rgba(11, 17, 30, 0.7);
+      gap: 14px;
+      padding: 18px;
+      background: #0D121F;
       border: 1px solid rgba(6, 182, 212, 0.25);
       border-radius: var(--radius-md);
+      box-shadow: inset 4px 4px 10px #05080E, inset -4px -4px 10px rgba(255, 255, 255, 0.03);
       margin-top: 4px;
     }
 
@@ -537,8 +585,8 @@
 
     .timer-ring-container {
       position: relative;
-      width: 120px;
-      height: 120px;
+      width: 124px;
+      height: 124px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -552,7 +600,7 @@
 
     .timer-bg-circle {
       fill: none;
-      stroke: rgba(255, 255, 255, 0.08);
+      stroke: rgba(255, 255, 255, 0.06);
       stroke-width: 6;
     }
 
@@ -577,7 +625,7 @@
 
     .timer-digits {
       font-family: var(--font-mono);
-      font-size: 1.4rem;
+      font-size: 1.45rem;
       font-weight: 700;
       color: #E2E8F0;
       letter-spacing: -0.02em;
@@ -592,19 +640,25 @@
 
     .btn-cancel-timer {
       min-height: 40px;
-      padding: 6px 14px;
-      font-size: 0.8rem;
+      padding: 6px 16px;
+      font-size: 0.82rem;
       font-weight: 600;
       color: #F87171;
-      background: rgba(239, 68, 68, 0.1);
+      background: linear-gradient(145deg, #1C1216, #140C10);
       border: 1px solid rgba(239, 68, 68, 0.25);
       border-radius: var(--radius-sm);
+      box-shadow: 3px 3px 8px #060910, -2px -2px 6px rgba(255, 255, 255, 0.02);
       cursor: pointer;
       transition: var(--transition-smooth);
     }
 
     .btn-cancel-timer:hover {
       background: rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-cancel-timer:active {
+      transform: scale(0.96);
+      box-shadow: inset 2px 2px 5px #060910;
     }
 
     /* ----------------------------------------------------
@@ -644,10 +698,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 14px;
-      background: rgba(11, 15, 25, 0.5);
+      padding: 12px 14px;
+      background: linear-gradient(145deg, #131A29, #0E1422);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: var(--radius-sm);
+      box-shadow: 3px 3px 8px #060910, -2px -2px 6px rgba(255, 255, 255, 0.02);
       font-size: 0.82rem;
       transition: var(--transition-smooth);
       animation: fadeIn 0.3s ease;
@@ -665,28 +720,32 @@
     }
 
     .log-icon-pill {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.4);
     }
 
     .log-icon-pill.on {
       background: rgba(34, 197, 94, 0.15);
       color: var(--state-on);
+      border: 1px solid rgba(34, 197, 94, 0.25);
     }
 
     .log-icon-pill.off {
       background: rgba(71, 85, 105, 0.2);
       color: var(--text-secondary);
+      border: 1px solid rgba(71, 85, 105, 0.25);
     }
 
     .log-icon-pill.info {
       background: rgba(6, 182, 212, 0.15);
       color: var(--accent-cyan);
+      border: 1px solid rgba(6, 182, 212, 0.25);
     }
 
     .log-details {
@@ -738,9 +797,10 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px 16px;
-      background: rgba(34, 197, 94, 0.1);
+      background: linear-gradient(145deg, #13241C, #0E1B15);
       border: 1px solid rgba(34, 197, 94, 0.3);
       border-radius: var(--radius-md);
+      box-shadow: var(--neu-shadow-convex);
     }
 
     .pwa-install-banner.show {
@@ -793,8 +853,8 @@
 
     .toast-msg {
       background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--surface-glass-border);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
       border-radius: var(--radius-md);
       padding: 10px 16px;
       font-size: 0.82rem;
@@ -876,12 +936,16 @@
       </div>
     </header>
 
-    <!-- Center Hero Switch Card -->
-    <section class="glass-card hero-switch-card" id="heroCard">
-      <div class="switch-wrapper">
-        <div class="glow-ring" aria-hidden="true"></div>
+    <!-- Center Hero Switch Card (Neumorphic Bezel & Glass Button) -->
+    <section class="glass-neu-card hero-switch-card" id="heroCard">
+      <!-- Concave Socket Bezel -->
+      <div class="switch-bezel-socket">
+        <div class="glow-ambient-pulse" aria-hidden="true"></div>
 
         <button id="masterSwitchBtn" class="master-switch-btn" aria-label="สวิตช์ไฟหลัก" aria-pressed="false">
+          <!-- Glass reflection glare -->
+          <div class="btn-glass-glare" aria-hidden="true"></div>
+
           <!-- Power SVG Icon -->
           <svg class="power-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
@@ -902,7 +966,7 @@
     </section>
 
     <!-- Countdown Timer Card -->
-    <section class="glass-card timer-card">
+    <section class="glass-neu-card timer-card">
       <div class="section-title-row">
         <div class="section-title">
           <!-- Clock SVG -->
@@ -945,10 +1009,10 @@
     </section>
 
     <!-- Recent Activity Log Card -->
-    <section class="glass-card activity-card">
+    <section class="glass-neu-card activity-card">
       <div class="section-title-row">
         <div class="section-title">
-          <!-- List/History SVG -->
+          <!-- History SVG -->
           <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary);">
             <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
@@ -964,7 +1028,7 @@
 
     <!-- Footer info -->
     <footer class="app-footer">
-      <div>ESP32-C6 Smart Switch • Web Bluetooth PWA</div>
+      <div>ESP32-C6 Smart Switch • Neumorphic Glass PWA</div>
       <div>UUID: 19b10000-e8f2-537e-4f6c-d104768a1214</div>
       <div><a href="https://github.com/jajx55jj/smart-switch" target="_blank" rel="noopener noreferrer">GitHub Repository</a></div>
     </footer>
@@ -1010,7 +1074,7 @@
       timerId: null,
       timerTotalSeconds: 0,
       timerRemainingSeconds: 0,
-      timerTargetState: false // false = target is OFF, true = target is ON
+      timerTargetState: false
     };
 
     /* DOM Elements */
@@ -1069,7 +1133,7 @@
         osc.start();
         osc.stop(ctx.currentTime + duration);
       } catch (err) {
-        // AudioContext might be restricted until user interaction
+        // AudioContext policy
       }
     }
 
@@ -1088,7 +1152,6 @@
       toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
       els.toastContainer.appendChild(toast);
 
-      // Trigger reflow to animate
       requestAnimationFrame(() => toast.classList.add('show'));
 
       setTimeout(() => {
@@ -1098,7 +1161,7 @@
     }
 
     /* ----------------------------------------------------
-       ACTIVITY LOG MANAGEMENT (localStorage supported)
+       ACTIVITY LOG MANAGEMENT (localStorage)
     ---------------------------------------------------- */
     const STORAGE_KEY_LOGS = 'smartswitch_c6_logs';
 
@@ -1125,7 +1188,7 @@
       };
 
       logs.unshift(newEntry);
-      if (logs.length > 5) logs.pop(); // Keep only latest 5 entries
+      if (logs.length > 5) logs.pop();
 
       try {
         localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
@@ -1239,10 +1302,8 @@
     }
 
     /* ----------------------------------------------------
-       WEB BLUETOOTH ENGINE (Core ESP32-C6 Driver)
+       WEB BLUETOOTH ENGINE (ESP32-C6 Driver)
     ---------------------------------------------------- */
-
-    // Check Web Bluetooth Support
     if (!('bluetooth' in navigator)) {
       els.compatBanner.style.display = 'block';
     }
@@ -1319,7 +1380,7 @@
       const rawVal = dataView.getUint8(0);
       const isOn = (rawVal === 1);
 
-      // Determine if change was from our own web click or physical board switch
+      // Check source
       const timeSinceLastLocalOp = Date.now() - state.operationTimestamp;
       const isFromOurCommand = (timeSinceLastLocalOp < 600) && state.lastOperationSource;
 
@@ -1397,7 +1458,6 @@
         state.lastOperationSource = sourceName;
         state.operationTimestamp = Date.now();
 
-        // Target: 1 for ON, 0 for OFF
         const payload = new Uint8Array([targetState ? 1 : 0]);
 
         if (state.characteristic.writeValueWithResponse) {
@@ -1406,7 +1466,6 @@
           await state.characteristic.writeValue(payload);
         }
 
-        // Optimistic UI response
         updateSwitchUI(targetState, sourceName);
         return true;
       } catch (err) {
@@ -1430,7 +1489,6 @@
       triggerHaptic(40);
 
       if (!state.isConnected) {
-        // If not connected yet, clicking prompts to connect
         connectBluetooth();
         return;
       }
@@ -1446,17 +1504,14 @@
       triggerHaptic(40);
       clearInterval(state.timerId);
 
-      // Determine target: if ON, timer will turn OFF. If OFF, timer will turn ON.
       state.timerTargetState = !state.isSwitchOn;
       state.timerTotalSeconds = minutes * 60;
       state.timerRemainingSeconds = state.timerTotalSeconds;
 
-      // Highlight active preset button
       document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
       });
 
-      // Update target label
       els.timerTargetTag.textContent = state.timerTargetState ? 'จะเปิดไฟ' : 'จะปิดไฟ';
       els.countdownBox.classList.add('is-active');
 
@@ -1480,7 +1535,6 @@
       const secs = state.timerRemainingSeconds % 60;
       els.timerDigits.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
-      // Update SVG circular progress
       const fraction = state.timerRemainingSeconds / state.timerTotalSeconds;
       const offset = CIRCLE_CIRCUMFERENCE * (1 - fraction);
       els.timerProgressCircle.style.strokeDashoffset = offset;
@@ -1490,11 +1544,10 @@
       els.countdownBox.classList.remove('is-active');
       document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
 
-      // Haptic and sound notification
       if (navigator.vibrate) {
         navigator.vibrate([100, 60, 100, 60, 200]);
       }
-      playTone(523.25, 0.4); // High C
+      playTone(523.25, 0.4);
 
       showToast(`⏰ ครบเวลาแล้ว! กำลัง${state.timerTargetState ? 'เปิดไฟ' : 'ปิดไฟ'}`, 'success');
 
@@ -1510,7 +1563,6 @@
       showToast('ยกเลิกการตั้งเวลาแล้ว');
     }
 
-    // Attach Preset Listeners
     document.querySelectorAll('.preset-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const mins = parseInt(btn.dataset.minutes, 10);
@@ -1537,7 +1589,6 @@
       });
     }
 
-    // Capture install prompt for Android / Chrome
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;

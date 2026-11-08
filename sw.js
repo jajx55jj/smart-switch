@@ -3,7 +3,7 @@
  * Cache-first strategy for instant offline capability on GitHub Pages and Android Chrome
  */
 
-const CACHE_NAME = 'smartswitch-c6-v1.0.1';
+const CACHE_NAME = 'smartswitch-c6-v1.1.0-neu-glass';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
