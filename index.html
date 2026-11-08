@@ -2,103 +2,1565 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BLE Smart Switch</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#080C14">
+  <meta name="description" content="Web Bluetooth Controller สำหรับสวิตช์อัจฉริยะ ESP32-C6 รองรับการตั้งเวลานับถอยหลังและ PWA ออฟไลน์">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SmartSwitch">
+  
+  <title>Smart Switch C6 - Smart Home BLE</title>
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <!-- Modern Typography (Plus Jakarta Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
   <style>
-    body { font-family: system-ui, sans-serif; background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; user-select: none; }
-    .card { background: #1e1e1e; padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center; width: 290px; }
-    h2 { margin: 0 0 10px 0; font-weight: 600; font-size: 20px; }
-    .conn-btn { background: #2979ff; color: #fff; border: none; padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 20px; }
-    .conn-btn.connected { background: #2e7d32; }
-    .power-btn { width: 160px; height: 160px; border-radius: 50%; border: none; font-size: 28px; font-weight: bold; cursor: pointer; transition: 0.25s; margin: 10px 0 20px 0; outline: none; }
-    .power-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .on { background: #00e676; color: #000; box-shadow: 0 0 35px rgba(0, 230, 118, 0.6); }
-    .off { background: #2c2c2c; color: #888; box-shadow: inset 0 0 12px rgba(0,0,0,0.8); }
-    .status { font-size: 14px; color: #aaa; }
+    /* ----------------------------------------------------
+       CSS DESIGN TOKENS (Modern Dark Glassmorphism)
+       Recommended by ui-ux-pro-max
+    ---------------------------------------------------- */
+    :root {
+      --bg-base: #080C14;
+      --surface-glass: rgba(18, 24, 38, 0.75);
+      --surface-glass-card: rgba(22, 30, 48, 0.65);
+      --surface-glass-border: rgba(255, 255, 255, 0.08);
+      --surface-glass-border-hover: rgba(255, 255, 255, 0.18);
+      
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      
+      --state-on: #22C55E;
+      --state-on-glow: rgba(34, 197, 94, 0.45);
+      --state-on-subtle: rgba(34, 197, 94, 0.12);
+      --state-on-dark: #15803D;
+
+      --state-off: #475569;
+      --state-off-glow: rgba(71, 85, 105, 0.25);
+      --state-off-dark: #0F172A;
+
+      --ble-connected: #10B981;
+      --ble-connecting: #F59E0B;
+      --ble-disconnected: #EF4444;
+
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-full: 9999px;
+
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --shadow-card: 0 16px 40px -8px rgba(0, 0, 0, 0.5);
+      --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ----------------------------------------------------
+       BASE RESETS & RESPONSIVE CONTAINER
+    ---------------------------------------------------- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 20px) 16px;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.08) 0%, transparent 55%),
+        radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.06) 0%, transparent 45%),
+        radial-gradient(circle at 15% 75%, rgba(139, 92, 246, 0.05) 0%, transparent 45%);
+      background-attachment: fixed;
+    }
+
+    /* Prevent text selection during rapid button clicks */
+    button, .badge, .preset-btn {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .app-viewport {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 0 auto;
+      padding-bottom: 24px;
+    }
+
+    /* ----------------------------------------------------
+       GLASSMORPHIC CARDS & PANELS
+    ---------------------------------------------------- */
+    .glass-card {
+      background: var(--surface-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--surface-glass-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition-smooth);
+    }
+
+    .glass-card:hover {
+      border-color: var(--surface-glass-border-hover);
+    }
+
+    /* ----------------------------------------------------
+       HEADER & CONNECTION STATUS BAR
+    ---------------------------------------------------- */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      background: rgba(18, 24, 38, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--surface-glass-border);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon-box {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(6, 182, 212, 0.1));
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--state-on);
+    }
+
+    .brand-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-chip {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Connection Status Badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--surface-glass-border);
+      transition: var(--transition-smooth);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--ble-disconnected);
+      box-shadow: 0 0 8px var(--ble-disconnected);
+      transition: var(--transition-smooth);
+    }
+
+    .status-badge.connected {
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #A7F3D0;
+    }
+    .status-badge.connected .status-dot {
+      background-color: var(--ble-connected);
+      box-shadow: 0 0 10px var(--ble-connected);
+      animation: pulse-dot 2s infinite;
+    }
+
+    .status-badge.connecting {
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #FDE68A;
+    }
+    .status-badge.connecting .status-dot {
+      background-color: var(--ble-connecting);
+      box-shadow: 0 0 10px var(--ble-connecting);
+      animation: blink-dot 1s infinite;
+    }
+
+    .status-badge.disconnected {
+      border-color: rgba(239, 68, 68, 0.25);
+      color: var(--text-secondary);
+    }
+    .status-badge.disconnected .status-dot {
+      background-color: var(--ble-disconnected);
+      box-shadow: 0 0 8px var(--ble-disconnected);
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+
+    @keyframes blink-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Action Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 44px;
+      min-width: 44px;
+      padding: 8px 16px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      cursor: pointer;
+      outline: none;
+      transition: var(--transition-smooth);
+    }
+
+    .btn:focus-visible {
+      box-shadow: 0 0 0 2px var(--state-on);
+    }
+
+    .btn-ble {
+      background: rgba(34, 197, 94, 0.12);
+      border-color: rgba(34, 197, 94, 0.3);
+      color: #86EFAC;
+    }
+    .btn-ble:hover {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: rgba(34, 197, 94, 0.5);
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+    }
+    .btn-ble:active {
+      transform: scale(0.96);
+    }
+
+    .btn-ble.is-connected {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.25);
+      color: #FCA5A5;
+    }
+    .btn-ble.is-connected:hover {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    /* ----------------------------------------------------
+       HERO SWITCH CARD (CENTER INTERACTIVE ELEMENT)
+    ---------------------------------------------------- */
+    .hero-switch-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 36px 20px 28px 20px;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .hero-switch-card::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--state-on-subtle) 0%, transparent 70%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .hero-switch-card.is-on::before {
+      opacity: 1;
+    }
+
+    .switch-wrapper {
+      position: relative;
+      margin: 10px 0 24px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Outer Halo / Pulse Ring */
+    .glow-ring {
+      position: absolute;
+      width: 196px;
+      height: 196px;
+      border-radius: 50%;
+      border: 2px dashed rgba(255, 255, 255, 0.05);
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+
+    .is-on .glow-ring {
+      border: 2px solid rgba(34, 197, 94, 0.35);
+      box-shadow: 0 0 35px var(--state-on-glow), inset 0 0 20px rgba(34, 197, 94, 0.15);
+      animation: rotate-ring 25s linear infinite;
+    }
+
+    @keyframes rotate-ring {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Main Big Touch Switch Button */
+    .master-switch-btn {
+      width: 156px;
+      height: 156px;
+      border-radius: 50%;
+      position: relative;
+      z-index: 2;
+      border: 2px solid var(--surface-glass-border);
+      background: radial-gradient(circle at 40% 30%, #1E293B, #0F172A);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.05);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      outline: none;
+    }
+
+    .master-switch-btn:hover {
+      transform: scale(1.02);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .master-switch-btn:active {
+      transform: scale(0.94);
+    }
+
+    .master-switch-btn:focus-visible {
+      box-shadow: 0 0 0 4px var(--state-on);
+    }
+
+    /* ON State Appearance */
+    .hero-switch-card.is-on .master-switch-btn {
+      background: radial-gradient(circle at 35% 30%, #22C55E, #15803D 85%);
+      border-color: #86EFAC;
+      color: #FFFFFF;
+      box-shadow: 
+        0 0 45px var(--state-on-glow),
+        0 12px 35px rgba(21, 128, 61, 0.5),
+        inset 0 2px 8px rgba(255, 255, 255, 0.4);
+    }
+
+    .power-icon {
+      width: 58px;
+      height: 58px;
+      stroke-width: 2.3;
+      stroke: currentColor;
+      fill: none;
+      transition: var(--transition-smooth);
+    }
+
+    .is-on .power-icon {
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+    }
+
+    .switch-state-text {
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    /* State Metadata Label below button */
+    .switch-status-label {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .switch-state-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--state-off);
+      transition: var(--transition-smooth);
+    }
+
+    .is-on .switch-state-indicator {
+      background-color: var(--state-on);
+      box-shadow: 0 0 12px var(--state-on);
+    }
+
+    .device-name-hint {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ----------------------------------------------------
+       COUNTDOWN TIMER SECTION
+    ---------------------------------------------------- */
+    .timer-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-primary);
+    }
+
+    .section-icon {
+      width: 20px;
+      height: 20px;
+      color: var(--accent-cyan);
+    }
+
+    /* Timer Presets Grid */
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .preset-btn {
+      min-height: 44px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--surface-glass-border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preset-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .preset-btn:active {
+      transform: scale(0.95);
+    }
+
+    .preset-btn.active {
+      background: rgba(6, 182, 212, 0.15);
+      border-color: var(--accent-cyan);
+      color: #67E8F9;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
+    }
+
+    /* Active Countdown Display */
+    .countdown-display-box {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(11, 17, 30, 0.7);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      border-radius: var(--radius-md);
+      margin-top: 4px;
+    }
+
+    .countdown-display-box.is-active {
+      display: flex;
+    }
+
+    .timer-ring-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .timer-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .timer-bg-circle {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 6;
+    }
+
+    .timer-progress-circle {
+      fill: none;
+      stroke: var(--accent-cyan);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 339.292;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear;
+      filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.6));
+    }
+
+    .timer-text-overlay {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .timer-digits {
+      font-family: var(--font-mono);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #E2E8F0;
+      letter-spacing: -0.02em;
+    }
+
+    .timer-target-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #67E8F9;
+      text-transform: uppercase;
+    }
+
+    .btn-cancel-timer {
+      min-height: 40px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #F87171;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-cancel-timer:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    /* ----------------------------------------------------
+       ACTIVITY LOG SECTION
+    ---------------------------------------------------- */
+    .activity-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn-clear-log {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-clear-log:hover {
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      list-style: none;
+    }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(11, 15, 25, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      transition: var(--transition-smooth);
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .log-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .log-icon-pill {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .log-icon-pill.on {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--state-on);
+    }
+
+    .log-icon-pill.off {
+      background: rgba(71, 85, 105, 0.2);
+      color: var(--text-secondary);
+    }
+
+    .log-icon-pill.info {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--accent-cyan);
+    }
+
+    .log-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .log-action-text {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .log-source-tag {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .log-time {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .empty-log {
+      text-align: center;
+      padding: 16px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    /* ----------------------------------------------------
+       BANNER & FOOTER INFO
+    ---------------------------------------------------- */
+    .compat-banner {
+      display: none;
+      padding: 12px 16px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-md);
+      font-size: 0.82rem;
+      color: #FCA5A5;
+      line-height: 1.45;
+    }
+
+    .pwa-install-banner {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: var(--radius-md);
+    }
+
+    .pwa-install-banner.show {
+      display: flex;
+    }
+
+    .pwa-text {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #86EFAC;
+    }
+
+    .app-footer {
+      text-align: center;
+      padding: 12px 0;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .app-footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .app-footer a:hover {
+      color: var(--state-on);
+      text-decoration: underline;
+    }
+
+    /* ----------------------------------------------------
+       TOAST NOTIFICATION
+    ---------------------------------------------------- */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 90%;
+      max-width: 360px;
+    }
+
+    .toast-msg {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--surface-glass-border);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast-msg.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ----------------------------------------------------
+       ACCESSIBILITY & PREFERS-REDUCED-MOTION
+    ---------------------------------------------------- */
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>สวิตช์ไฟ ESP32-C6</h2>
-    <button id="connectBtn" class="conn-btn" onclick="connectBLE()">🔗 เชื่อมต่อ Bluetooth</button>
-    <button id="toggleBtn" class="power-btn off" onclick="toggleLight()" disabled>OFF</button>
-    <div class="status" id="statusText">สถานะ: ยังไม่ได้เชื่อมต่อ</div>
-  </div>
 
+  <main class="app-viewport">
+
+    <!-- Browser Bluetooth Compatibility Warning Banner -->
+    <div id="compatBanner" class="compat-banner" role="alert">
+      <strong>⚠️ เบราว์เซอร์นี้ยังไม่รองรับ Web Bluetooth API</strong><br>
+      • สำหรับ Android/PC/Mac: โปรดเปิดด้วย Google Chrome หรือ Microsoft Edge<br>
+      • สำหรับ iPhone/iPad: โปรดเปิดผ่านเบราว์เซอร์ Bluefy (รองรับ Web BLE)
+    </div>
+
+    <!-- PWA Install Prompt Banner -->
+    <div id="pwaBanner" class="pwa-install-banner">
+      <div class="pwa-text">📲 ติดตั้งแอปเพื่อใช้งานแบบออฟไลน์</div>
+      <button id="pwaInstallBtn" class="btn btn-ble" style="min-height:36px; padding:4px 12px; font-size:0.75rem;">ติดตั้งทันที</button>
+    </div>
+
+    <!-- Top Header & Connection Bar -->
+    <header class="app-header">
+      <div class="brand-group">
+        <div class="brand-icon-box" aria-hidden="true">
+          <!-- Lightning / Power SVG -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">Smart Switch <span class="badge-chip">C6</span></div>
+          <div class="device-name-hint">ESP32-C6 BLE</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Status Indicator Pill -->
+        <div id="statusBadge" class="status-badge disconnected" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="statusText">ไม่ได้เชื่อมต่อ</span>
+        </div>
+
+        <!-- BLE Connect/Disconnect Button -->
+        <button id="bleToggleBtn" class="btn btn-ble" aria-label="เชื่อมต่อบลูทูธ">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m7 7 10 10-5 5V2l5 5L7 17"/>
+          </svg>
+          <span id="bleBtnLabel">เชื่อมต่อ</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Center Hero Switch Card -->
+    <section class="glass-card hero-switch-card" id="heroCard">
+      <div class="switch-wrapper">
+        <div class="glow-ring" aria-hidden="true"></div>
+
+        <button id="masterSwitchBtn" class="master-switch-btn" aria-label="สวิตช์ไฟหลัก" aria-pressed="false">
+          <!-- Power SVG Icon -->
+          <svg class="power-icon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+            <line x1="12" y1="2" x2="12" y2="12"></line>
+          </svg>
+          <span id="switchStateLabel" class="switch-state-text">OFF</span>
+        </button>
+      </div>
+
+      <div class="switch-status-label">
+        <span class="switch-state-indicator"></span>
+        <span id="statusDetailedText">สถานะ: ปิดอยู่ (OFF)</span>
+      </div>
+
+      <div class="device-name-hint" id="syncSourceLabel">
+        แตะที่ปุ่มเพื่อเปิดหรือปิดไฟ
+      </div>
+    </section>
+
+    <!-- Countdown Timer Card -->
+    <section class="glass-card timer-card">
+      <div class="section-title-row">
+        <div class="section-title">
+          <!-- Clock SVG -->
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>ตั้งเวลานับถอยหลัง</span>
+        </div>
+        <span id="timerModeHint" class="badge-chip" style="color:#67E8F9; background:rgba(6,182,212,0.12);">
+          สั่งปิดเมื่อครบเวลา
+        </span>
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div class="presets-grid" role="group" aria-label="ตั้งเวลาล่วงหน้า">
+        <button class="preset-btn" data-minutes="5">5 นาที</button>
+        <button class="preset-btn" data-minutes="15">15 นาที</button>
+        <button class="preset-btn" data-minutes="30">30 นาที</button>
+        <button class="preset-btn" data-minutes="60">1 ชม.</button>
+      </div>
+
+      <!-- Active Countdown Box (Shows when timer is active) -->
+      <div id="countdownBox" class="countdown-display-box" aria-live="polite">
+        <div class="timer-ring-container">
+          <svg class="timer-svg" viewBox="0 0 120 120">
+            <circle class="timer-bg-circle" cx="60" cy="60" r="54"></circle>
+            <circle id="timerProgressCircle" class="timer-progress-circle" cx="60" cy="60" r="54"></circle>
+          </svg>
+          <div class="timer-text-overlay">
+            <span id="timerDigits" class="timer-digits">00:00</span>
+            <span id="timerTargetTag" class="timer-target-tag">จะปิดไฟ</span>
+          </div>
+        </div>
+
+        <button id="cancelTimerBtn" class="btn-cancel-timer">
+          ✕ ยกเลิกการตั้งเวลา
+        </button>
+      </div>
+    </section>
+
+    <!-- Recent Activity Log Card -->
+    <section class="glass-card activity-card">
+      <div class="section-title-row">
+        <div class="section-title">
+          <!-- List/History SVG -->
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary);">
+            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>ประวัติการทำงานล่าสุด</span>
+        </div>
+        <button id="clearLogBtn" class="btn-clear-log" title="ล้างประวัติ">ล้างข้อมูล</button>
+      </div>
+
+      <ul id="logList" class="log-list" aria-live="polite">
+        <!-- Dynamically rendered log items -->
+      </ul>
+    </section>
+
+    <!-- Footer info -->
+    <footer class="app-footer">
+      <div>ESP32-C6 Smart Switch • Web Bluetooth PWA</div>
+      <div>UUID: 19b10000-e8f2-537e-4f6c-d104768a1214</div>
+      <div><a href="https://github.com/jajx55jj/smart-switch" target="_blank" rel="noopener noreferrer">GitHub Repository</a></div>
+    </footer>
+
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
+
+  <!-- ----------------------------------------------------
+       CORE JAVASCRIPT: BLE LOGIC, TIMER, PWA & UX
+  ---------------------------------------------------- -->
   <script>
-    const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
-    const CHAR_UUID    = "19b10001-e8f2-537e-4f6c-d104768a1214";
+    'use strict';
 
-    let bleDevice;
-    let switchChar;
-    let currentState = false;
+    /**
+     * SYSTEM CONFIGURATION & BLE CONSTANTS
+     * NOTE: Must match ESP32-C6 Firmware GATT Profile exactly
+     */
+    const BLE_CONFIG = {
+      DEVICE_NAME: 'SmartSwitch_C6',
+      SERVICE_UUID: '19b10000-e8f2-537e-4f6c-d104768a1214',
+      CHARACTERISTIC_UUID: '19b10001-e8f2-537e-4f6c-d104768a1214',
+      AUTO_RECONNECT_MAX: 5,
+      AUTO_RECONNECT_DELAY_MS: 3000
+    };
 
-    function updateUI(state) {
-      currentState = state;
-      const btn = document.getElementById('toggleBtn');
-      const txt = document.getElementById('statusText');
-      if (state) {
-        btn.className = 'power-btn on';
-        btn.innerText = 'ON';
-        txt.innerText = 'สถานะไฟ: เปิดทำงาน (ON)';
+    /**
+     * APPLICATION STATE
+     */
+    const state = {
+      device: null,
+      server: null,
+      characteristic: null,
+      isConnected: false,
+      isConnecting: false,
+      isSwitchOn: false,
+      autoReconnectAttempts: 0,
+      userRequestedDisconnect: false,
+      lastOperationSource: null,
+      operationTimestamp: 0,
+      // Countdown Timer State
+      timerId: null,
+      timerTotalSeconds: 0,
+      timerRemainingSeconds: 0,
+      timerTargetState: false // false = target is OFF, true = target is ON
+    };
+
+    /* DOM Elements */
+    const els = {
+      compatBanner: document.getElementById('compatBanner'),
+      pwaBanner: document.getElementById('pwaBanner'),
+      pwaInstallBtn: document.getElementById('pwaInstallBtn'),
+      statusBadge: document.getElementById('statusBadge'),
+      statusText: document.getElementById('statusText'),
+      bleToggleBtn: document.getElementById('bleToggleBtn'),
+      bleBtnLabel: document.getElementById('bleBtnLabel'),
+      heroCard: document.getElementById('heroCard'),
+      masterSwitchBtn: document.getElementById('masterSwitchBtn'),
+      switchStateLabel: document.getElementById('switchStateLabel'),
+      statusDetailedText: document.getElementById('statusDetailedText'),
+      syncSourceLabel: document.getElementById('syncSourceLabel'),
+      timerModeHint: document.getElementById('timerModeHint'),
+      countdownBox: document.getElementById('countdownBox'),
+      timerDigits: document.getElementById('timerDigits'),
+      timerTargetTag: document.getElementById('timerTargetTag'),
+      timerProgressCircle: document.getElementById('timerProgressCircle'),
+      cancelTimerBtn: document.getElementById('cancelTimerBtn'),
+      logList: document.getElementById('logList'),
+      clearLogBtn: document.getElementById('clearLogBtn'),
+      toastContainer: document.getElementById('toastContainer')
+    };
+
+    const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 54; // r=54 -> 339.292
+
+    /* ----------------------------------------------------
+       HAPTIC FEEDBACK & SOUND NOTIFICATION
+    ---------------------------------------------------- */
+    function triggerHaptic(duration = 40) {
+      if (navigator.vibrate) {
+        try {
+          navigator.vibrate(duration);
+        } catch (e) {
+          // Ignore vibration policy issues
+        }
+      }
+    }
+
+    function playTone(freq = 660, duration = 0.25) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (err) {
+        // AudioContext might be restricted until user interaction
+      }
+    }
+
+    /* ----------------------------------------------------
+       TOAST NOTIFICATION HELPER
+    ---------------------------------------------------- */
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = 'toast-msg';
+      
+      let icon = 'ℹ️';
+      if (type === 'success') icon = '✅';
+      if (type === 'error') icon = '❌';
+      if (type === 'warning') icon = '⚠️';
+
+      toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+      els.toastContainer.appendChild(toast);
+
+      // Trigger reflow to animate
+      requestAnimationFrame(() => toast.classList.add('show'));
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 350);
+      }, 3000);
+    }
+
+    /* ----------------------------------------------------
+       ACTIVITY LOG MANAGEMENT (localStorage supported)
+    ---------------------------------------------------- */
+    const STORAGE_KEY_LOGS = 'smartswitch_c6_logs';
+
+    function getLogs() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_LOGS);
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function addLogEntry(action, source, stateType = 'info') {
+      const logs = getLogs();
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      const newEntry = {
+        id: Date.now(),
+        action,
+        source,
+        stateType,
+        time: timeStr
+      };
+
+      logs.unshift(newEntry);
+      if (logs.length > 5) logs.pop(); // Keep only latest 5 entries
+
+      try {
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+      } catch (e) {}
+
+      renderLogs();
+    }
+
+    function renderLogs() {
+      const logs = getLogs();
+      els.logList.innerHTML = '';
+
+      if (logs.length === 0) {
+        els.logList.innerHTML = '<li class="empty-log">ยังไม่มีประวัติการใช้งาน</li>';
+        return;
+      }
+
+      logs.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'log-item';
+
+        let iconSvg = '';
+        if (item.stateType === 'on') {
+          iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>`;
+        } else if (item.stateType === 'off') {
+          iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line></svg>`;
+        } else {
+          iconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>`;
+        }
+
+        li.innerHTML = `
+          <div class="log-left">
+            <div class="log-icon-pill ${item.stateType}">
+              ${iconSvg}
+            </div>
+            <div class="log-details">
+              <span class="log-action-text">${item.action}</span>
+              <span class="log-source-tag">${item.source}</span>
+            </div>
+          </div>
+          <span class="log-time">${item.time}</span>
+        `;
+        els.logList.appendChild(li);
+      });
+    }
+
+    els.clearLogBtn.addEventListener('click', () => {
+      triggerHaptic(30);
+      localStorage.removeItem(STORAGE_KEY_LOGS);
+      renderLogs();
+      showToast('ล้างประวัติการทำงานเรียบร้อย');
+    });
+
+    /* ----------------------------------------------------
+       UI STATUS UPDATERS
+    ---------------------------------------------------- */
+    function updateConnectionUI(status, customMsg = null) {
+      els.statusBadge.classList.remove('connected', 'connecting', 'disconnected');
+
+      if (status === 'connected') {
+        els.statusBadge.classList.add('connected');
+        els.statusText.textContent = customMsg || 'เชื่อมต่อแล้ว';
+        els.bleToggleBtn.classList.add('is-connected');
+        els.bleBtnLabel.textContent = 'ตัดการเชื่อมต่อ';
+      } else if (status === 'connecting') {
+        els.statusBadge.classList.add('connecting');
+        els.statusText.textContent = customMsg || 'กำลังเชื่อมต่อ...';
+        els.bleToggleBtn.classList.remove('is-connected');
+        els.bleBtnLabel.textContent = 'ยกเลิก';
       } else {
-        btn.className = 'power-btn off';
-        btn.innerText = 'OFF';
-        txt.innerText = 'สถานะไฟ: ปิด (OFF)';
+        els.statusBadge.classList.add('disconnected');
+        els.statusText.textContent = customMsg || 'ไม่ได้เชื่อมต่อ';
+        els.bleToggleBtn.classList.remove('is-connected');
+        els.bleBtnLabel.textContent = 'เชื่อมต่อ';
       }
     }
 
-    async function connectBLE() {
+    function updateSwitchUI(isOn, sourceDescription = null) {
+      state.isSwitchOn = isOn;
+
+      if (isOn) {
+        els.heroCard.classList.add('is-on');
+        els.masterSwitchBtn.setAttribute('aria-pressed', 'true');
+        els.switchStateLabel.textContent = 'ON';
+        els.statusDetailedText.textContent = 'สถานะ: เปิดใช้งานอยู่ (ON)';
+      } else {
+        els.heroCard.classList.remove('is-on');
+        els.masterSwitchBtn.setAttribute('aria-pressed', 'false');
+        els.switchStateLabel.textContent = 'OFF';
+        els.statusDetailedText.textContent = 'สถานะ: ปิดอยู่ (OFF)';
+      }
+
+      if (sourceDescription) {
+        els.syncSourceLabel.textContent = `อัปเดตล่าสุด: ${sourceDescription}`;
+      } else {
+        els.syncSourceLabel.textContent = state.isConnected 
+          ? 'แตะที่ปุ่มเพื่อเปิดหรือปิดไฟ' 
+          : 'เชื่อมต่อบลูทูธเพื่อเริ่มสั่งงาน';
+      }
+
+      // Update timer section hint
+      if (isOn) {
+        els.timerModeHint.textContent = 'สั่งปิดเมื่อครบเวลา';
+        els.timerModeHint.style.color = '#F87171';
+        els.timerModeHint.style.background = 'rgba(239, 68, 68, 0.12)';
+      } else {
+        els.timerModeHint.textContent = 'สั่งเปิดเมื่อครบเวลา';
+        els.timerModeHint.style.color = '#86EFAC';
+        els.timerModeHint.style.background = 'rgba(34, 197, 94, 0.12)';
+      }
+    }
+
+    /* ----------------------------------------------------
+       WEB BLUETOOTH ENGINE (Core ESP32-C6 Driver)
+    ---------------------------------------------------- */
+
+    // Check Web Bluetooth Support
+    if (!('bluetooth' in navigator)) {
+      els.compatBanner.style.display = 'block';
+    }
+
+    async function connectBluetooth() {
+      if (!('bluetooth' in navigator)) {
+        showToast('เบราว์เซอร์นี้ไม่รองรับ Web Bluetooth API', 'error');
+        return;
+      }
+
+      triggerHaptic(40);
+      state.userRequestedDisconnect = false;
+      state.isConnecting = true;
+      updateConnectionUI('connecting');
+
       try {
-        document.getElementById('statusText').innerText = 'กำลังค้นหาอุปกรณ์...';
-        bleDevice = await navigator.bluetooth.requestDevice({
-          filters: [{ name: 'SmartSwitch_C6' }],
-          optionalServices: [SERVICE_UUID]
+        console.log('[BLE] Requesting Device with filter:', BLE_CONFIG.DEVICE_NAME);
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ name: BLE_CONFIG.DEVICE_NAME }],
+          optionalServices: [BLE_CONFIG.SERVICE_UUID]
         });
 
-        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+        state.device = device;
+        device.addEventListener('gattserverdisconnected', onGattDisconnected);
 
-        const server = await bleDevice.gatt.connect();
-        const service = await server.getPrimaryService(SERVICE_UUID);
-        switchChar = await service.getCharacteristic(CHAR_UUID);
+        await establishGattSession(device);
 
-        // เปิดรับค่าแจ้งเตือนเวลากดสวิตช์ที่ผนัง
-        await switchChar.startNotifications();
-        switchChar.addEventListener('characteristicvaluechanged', (event) => {
-          const val = event.target.value.getUint8(0);
-          updateUI(val === 1);
-        });
-
-        // อ่านค่าสถานะปัจจุบันทันทีที่เชื่อมต่อสำเร็จ
-        const initialVal = await switchChar.readValue();
-        updateUI(initialVal.getUint8(0) === 1);
-
-        document.getElementById('connectBtn').innerText = '✅ เชื่อมต่อแล้ว';
-        document.getElementById('connectBtn').className = 'conn-btn connected';
-        document.getElementById('toggleBtn').disabled = false;
-      } catch (error) {
-        document.getElementById('statusText').innerText = 'ยกเลิก หรือหาไม่เจอ';
-        console.error(error);
+      } catch (err) {
+        console.warn('[BLE] Connection canceled or failed:', err);
+        state.isConnecting = false;
+        updateConnectionUI('disconnected');
+        if (err.name !== 'NotFoundError') {
+          showToast(`เชื่อมต่อไม่สำเร็จ: ${err.message}`, 'error');
+        }
       }
     }
 
-    async function toggleLight() {
-      if (!switchChar) return;
+    async function establishGattSession(device) {
+      updateConnectionUI('connecting', 'กำลังจับคู่ GATT...');
+      
+      const server = await device.gatt.connect();
+      state.server = server;
+
+      const service = await server.getPrimaryService(BLE_CONFIG.SERVICE_UUID);
+      const characteristic = await service.getCharacteristic(BLE_CONFIG.CHARACTERISTIC_UUID);
+      state.characteristic = characteristic;
+
+      // Enable real-time Notifications from ESP32 board
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', handleBoardNotification);
+      console.log('[BLE] Notifications enabled on', BLE_CONFIG.CHARACTERISTIC_UUID);
+
+      // Read current state from ESP32
       try {
-        const nextVal = currentState ? 0 : 1;
-        await switchChar.writeValue(new Uint8Array([nextVal]));
-        updateUI(nextVal === 1);
-      } catch (error) {
-        console.error(error);
+        const initialVal = await characteristic.readValue();
+        const isCurrentlyOn = initialVal.getUint8(0) === 1;
+        updateSwitchUI(isCurrentlyOn, 'ซิงค์จากบอร์ด');
+      } catch (readErr) {
+        console.warn('[BLE] Initial read fallback:', readErr);
+      }
+
+      state.isConnected = true;
+      state.isConnecting = false;
+      state.autoReconnectAttempts = 0;
+      updateConnectionUI('connected');
+      addLogEntry('เชื่อมต่อสำเร็จ', 'SmartSwitch_C6', 'info');
+      showToast('เชื่อมต่อกับ SmartSwitch_C6 สำเร็จ', 'success');
+      playTone(880, 0.2);
+    }
+
+    /* Notification Listener for hardware button presses */
+    function handleBoardNotification(event) {
+      const dataView = event.target.value;
+      const rawVal = dataView.getUint8(0);
+      const isOn = (rawVal === 1);
+
+      // Determine if change was from our own web click or physical board switch
+      const timeSinceLastLocalOp = Date.now() - state.operationTimestamp;
+      const isFromOurCommand = (timeSinceLastLocalOp < 600) && state.lastOperationSource;
+
+      const sourceTag = isFromOurCommand ? state.lastOperationSource : 'สวิตช์บอร์ด (ESP32-C6)';
+      state.lastOperationSource = null;
+
+      updateSwitchUI(isOn, sourceTag);
+      addLogEntry(isOn ? 'เปิดไฟ' : 'ปิดไฟ', sourceTag, isOn ? 'on' : 'off');
+      triggerHaptic(isOn ? 50 : 35);
+    }
+
+    /* Disconnection & Auto-Reconnect Handler */
+    function onGattDisconnected() {
+      state.isConnected = false;
+      state.isConnecting = false;
+      state.characteristic = null;
+      state.server = null;
+
+      if (state.userRequestedDisconnect) {
+        updateConnectionUI('disconnected');
+        addLogEntry('ตัดการเชื่อมต่อ', 'ผู้ใช้งานสั่ง', 'info');
+        showToast('ตัดการเชื่อมต่อเรียบร้อย');
+        return;
+      }
+
+      console.warn('[BLE] Disconnected unexpectedly.');
+      addLogEntry('สัญญาณหลุด', 'Bluetooth Lost', 'info');
+      attemptAutoReconnect();
+    }
+
+    async function attemptAutoReconnect() {
+      if (!state.device || state.userRequestedDisconnect) return;
+
+      if (state.autoReconnectAttempts >= BLE_CONFIG.AUTO_RECONNECT_MAX) {
+        updateConnectionUI('disconnected', 'หลุดการเชื่อมต่อ');
+        showToast('เชื่อมต่อใหม่อัตโนมัติไม่สำเร็จ กรุณากดเชื่อมต่อ', 'warning');
+        return;
+      }
+
+      state.autoReconnectAttempts++;
+      const attemptNum = state.autoReconnectAttempts;
+      updateConnectionUI('connecting', `เชื่อมต่อใหม่ (${attemptNum}/${BLE_CONFIG.AUTO_RECONNECT_MAX})...`);
+
+      setTimeout(async () => {
+        if (state.isConnected || state.userRequestedDisconnect) return;
+        try {
+          console.log(`[BLE] Reconnecting attempt ${attemptNum}...`);
+          await establishGattSession(state.device);
+        } catch (e) {
+          console.warn(`[BLE] Reconnect attempt ${attemptNum} failed.`);
+          attemptAutoReconnect();
+        }
+      }, BLE_CONFIG.AUTO_RECONNECT_DELAY_MS);
+    }
+
+    function disconnectBluetooth() {
+      triggerHaptic(40);
+      state.userRequestedDisconnect = true;
+      if (state.device && state.device.gatt.connected) {
+        state.device.gatt.disconnect();
+      } else {
+        updateConnectionUI('disconnected');
       }
     }
 
-    function onDisconnected() {
-      document.getElementById('connectBtn').innerText = '🔗 เชื่อมต่อ Bluetooth';
-      document.getElementById('connectBtn').className = 'conn-btn';
-      document.getElementById('toggleBtn').disabled = true;
-      document.getElementById('statusText').innerText = 'สถานะ: หลุดการเชื่อมต่อ';
+    /* Send Switch Command over BLE */
+    async function sendSwitchCommand(targetState, sourceName = 'แอปมือถือ') {
+      if (!state.isConnected || !state.characteristic) {
+        showToast('ยังไม่ได้เชื่อมต่อบลูทูธ กรุณากดเชื่อมต่อก่อน', 'warning');
+        triggerHaptic(80);
+        return false;
+      }
+
+      try {
+        state.lastOperationSource = sourceName;
+        state.operationTimestamp = Date.now();
+
+        // Target: 1 for ON, 0 for OFF
+        const payload = new Uint8Array([targetState ? 1 : 0]);
+
+        if (state.characteristic.writeValueWithResponse) {
+          await state.characteristic.writeValueWithResponse(payload);
+        } else {
+          await state.characteristic.writeValue(payload);
+        }
+
+        // Optimistic UI response
+        updateSwitchUI(targetState, sourceName);
+        return true;
+      } catch (err) {
+        console.error('[BLE] Failed to write value:', err);
+        showToast('ส่งคำสั่งไม่สำเร็จ: ' + err.message, 'error');
+        return false;
+      }
     }
+
+    /* BLE Toggle Button in Header */
+    els.bleToggleBtn.addEventListener('click', () => {
+      if (state.isConnected || state.isConnecting) {
+        disconnectBluetooth();
+      } else {
+        connectBluetooth();
+      }
+    });
+
+    /* Master Switch Button */
+    els.masterSwitchBtn.addEventListener('click', async () => {
+      triggerHaptic(40);
+
+      if (!state.isConnected) {
+        // If not connected yet, clicking prompts to connect
+        connectBluetooth();
+        return;
+      }
+
+      const nextState = !state.isSwitchOn;
+      await sendSwitchCommand(nextState, 'แอปมือถือ (Web)');
+    });
+
+    /* ----------------------------------------------------
+       COUNTDOWN TIMER LOGIC
+    ---------------------------------------------------- */
+    function startCountdown(minutes) {
+      triggerHaptic(40);
+      clearInterval(state.timerId);
+
+      // Determine target: if ON, timer will turn OFF. If OFF, timer will turn ON.
+      state.timerTargetState = !state.isSwitchOn;
+      state.timerTotalSeconds = minutes * 60;
+      state.timerRemainingSeconds = state.timerTotalSeconds;
+
+      // Highlight active preset button
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
+      });
+
+      // Update target label
+      els.timerTargetTag.textContent = state.timerTargetState ? 'จะเปิดไฟ' : 'จะปิดไฟ';
+      els.countdownBox.classList.add('is-active');
+
+      updateTimerUI();
+
+      showToast(`เริ่มตั้งเวลา ${minutes} นาที (${state.timerTargetState ? 'เปิดไฟ' : 'ปิดไฟ'})`, 'info');
+
+      state.timerId = setInterval(() => {
+        state.timerRemainingSeconds--;
+        updateTimerUI();
+
+        if (state.timerRemainingSeconds <= 0) {
+          clearInterval(state.timerId);
+          onTimerComplete();
+        }
+      }, 1000);
+    }
+
+    function updateTimerUI() {
+      const mins = Math.floor(state.timerRemainingSeconds / 60);
+      const secs = state.timerRemainingSeconds % 60;
+      els.timerDigits.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      // Update SVG circular progress
+      const fraction = state.timerRemainingSeconds / state.timerTotalSeconds;
+      const offset = CIRCLE_CIRCUMFERENCE * (1 - fraction);
+      els.timerProgressCircle.style.strokeDashoffset = offset;
+    }
+
+    async function onTimerComplete() {
+      els.countdownBox.classList.remove('is-active');
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+
+      // Haptic and sound notification
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 60, 100, 60, 200]);
+      }
+      playTone(523.25, 0.4); // High C
+
+      showToast(`⏰ ครบเวลาแล้ว! กำลัง${state.timerTargetState ? 'เปิดไฟ' : 'ปิดไฟ'}`, 'success');
+
+      await sendSwitchCommand(state.timerTargetState, 'ตัวนับเวลา (Timer)');
+    }
+
+    function cancelTimer() {
+      triggerHaptic(30);
+      clearInterval(state.timerId);
+      state.timerId = null;
+      els.countdownBox.classList.remove('is-active');
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      showToast('ยกเลิกการตั้งเวลาแล้ว');
+    }
+
+    // Attach Preset Listeners
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mins = parseInt(btn.dataset.minutes, 10);
+        startCountdown(mins);
+      });
+    });
+
+    els.cancelTimerBtn.addEventListener('click', cancelTimer);
+
+    /* ----------------------------------------------------
+       PWA SERVICE WORKER & INSTALLATION
+    ---------------------------------------------------- */
+    let deferredInstallPrompt = null;
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => {
+            console.log('[PWA] Service Worker registered with scope:', reg.scope);
+          })
+          .catch(err => {
+            console.warn('[PWA] Service Worker registration failed:', err);
+          });
+      });
+    }
+
+    // Capture install prompt for Android / Chrome
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      els.pwaBanner.classList.add('show');
+    });
+
+    els.pwaInstallBtn.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      console.log('[PWA] User choice:', outcome);
+      deferredInstallPrompt = null;
+      els.pwaBanner.classList.remove('show');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      els.pwaBanner.classList.remove('show');
+      showToast('ติดตั้ง Smart Switch บนอุปกรณ์สำเร็จ', 'success');
+    });
+
+    /* Initial render */
+    renderLogs();
+    updateSwitchUI(false);
   </script>
 </body>
 </html>
