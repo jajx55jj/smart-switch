@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLE Smart Switch</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; user-select: none; }
+    .card { background: #1e1e1e; padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center; width: 290px; }
+    h2 { margin: 0 0 10px 0; font-weight: 600; font-size: 20px; }
+    .conn-btn { background: #2979ff; color: #fff; border: none; padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 20px; }
+    .conn-btn.connected { background: #2e7d32; }
+    .power-btn { width: 160px; height: 160px; border-radius: 50%; border: none; font-size: 28px; font-weight: bold; cursor: pointer; transition: 0.25s; margin: 10px 0 20px 0; outline: none; }
+    .power-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .on { background: #00e676; color: #000; box-shadow: 0 0 35px rgba(0, 230, 118, 0.6); }
+    .off { background: #2c2c2c; color: #888; box-shadow: inset 0 0 12px rgba(0,0,0,0.8); }
+    .status { font-size: 14px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>สวิตช์ไฟ ESP32-C6</h2>
+    <button id="connectBtn" class="conn-btn" onclick="connectBLE()">🔗 เชื่อมต่อ Bluetooth</button>
+    <button id="toggleBtn" class="power-btn off" onclick="toggleLight()" disabled>OFF</button>
+    <div class="status" id="statusText">สถานะ: ยังไม่ได้เชื่อมต่อ</div>
+  </div>
+
+  <script>
+    const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
+    const CHAR_UUID    = "19b10001-e8f2-537e-4f6c-d104768a1214";
+
+    let bleDevice;
+    let switchChar;
+    let currentState = false;
+
+    function updateUI(state) {
+      currentState = state;
+      const btn = document.getElementById('toggleBtn');
+      const txt = document.getElementById('statusText');
+      if (state) {
+        btn.className = 'power-btn on';
+        btn.innerText = 'ON';
+        txt.innerText = 'สถานะไฟ: เปิดทำงาน (ON)';
+      } else {
+        btn.className = 'power-btn off';
+        btn.innerText = 'OFF';
+        txt.innerText = 'สถานะไฟ: ปิด (OFF)';
+      }
+    }
+
+    async function connectBLE() {
+      try {
+        document.getElementById('statusText').innerText = 'กำลังค้นหาอุปกรณ์...';
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ name: 'SmartSwitch_C6' }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+        const server = await bleDevice.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        switchChar = await service.getCharacteristic(CHAR_UUID);
+
+        // เปิดรับค่าแจ้งเตือนเวลากดสวิตช์ที่ผนัง
+        await switchChar.startNotifications();
+        switchChar.addEventListener('characteristicvaluechanged', (event) => {
+          const val = event.target.value.getUint8(0);
+          updateUI(val === 1);
+        });
+
+        // อ่านค่าสถานะปัจจุบันทันทีที่เชื่อมต่อสำเร็จ
+        const initialVal = await switchChar.readValue();
+        updateUI(initialVal.getUint8(0) === 1);
+
+        document.getElementById('connectBtn').innerText = '✅ เชื่อมต่อแล้ว';
+        document.getElementById('connectBtn').className = 'conn-btn connected';
+        document.getElementById('toggleBtn').disabled = false;
+      } catch (error) {
+        document.getElementById('statusText').innerText = 'ยกเลิก หรือหาไม่เจอ';
+        console.error(error);
+      }
+    }
+
+    async function toggleLight() {
+      if (!switchChar) return;
+      try {
+        const nextVal = currentState ? 0 : 1;
+        await switchChar.writeValue(new Uint8Array([nextVal]));
+        updateUI(nextVal === 1);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    function onDisconnected() {
+      document.getElementById('connectBtn').innerText = '🔗 เชื่อมต่อ Bluetooth';
+      document.getElementById('connectBtn').className = 'conn-btn';
+      document.getElementById('toggleBtn').disabled = true;
+      document.getElementById('statusText').innerText = 'สถานะ: หลุดการเชื่อมต่อ';
+    }
+  </script>
+</body>
+</html>
