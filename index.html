@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0E1015">
-  <meta name="description" content="Luxury Smart Home Dashboard & Web Bluetooth Controller สำหรับ ESP32-C6">
+  <meta name="theme-color" content="#0D0F14">
+  <meta name="description" content="Luxury Smart Home Dashboard PWA: สวิตช์ไฟห้องนั่งเล่น (ESP32-C6) และรีโมทแอร์ Samsung (ESP32-C3)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SmartHome">
+  <meta name="apple-mobile-web-app-title" content="SmartHouse">
   
-  <title>Smart House - ESP32-C6 Smart Switch</title>
+  <title>Smart House - Multi-Room BLE Hub</title>
 
   <!-- PWA Manifest & Icons -->
   <link rel="manifest" href="./manifest.json">
@@ -19,12 +19,11 @@
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* ----------------------------------------------------
-       LUXURY SMART HOME DASHBOARD DESIGN TOKENS
-       Inspired by high-end Smart Home UI Architecture
+       LUXURY SMART HOME DASHBOARD DESIGN TOKENS (แบบ A)
     ---------------------------------------------------- */
     :root {
       --bg-dark: #0D0F14;
@@ -33,24 +32,28 @@
       --card-border: rgba(255, 255, 255, 0.08);
       --card-border-hover: rgba(255, 255, 255, 0.18);
 
-      /* Signature Electric Teal & Warm Amber Glow */
+      /* Electric Teal & Ice Cyan */
       --teal-primary: #2EE8C2;
       --teal-glow: rgba(46, 232, 194, 0.45);
       --teal-subtle: rgba(46, 232, 194, 0.12);
-      --teal-dark: #0D6956;
+      --cyan-ac: #38BDF8;
+      --cyan-ac-glow: rgba(56, 189, 248, 0.45);
+      --cyan-ac-subtle: rgba(56, 189, 248, 0.12);
 
+      /* Warm Amber Glow */
       --amber-warm: #FF7D3C;
       --amber-glow: rgba(255, 125, 60, 0.4);
       --amber-subtle: rgba(255, 125, 60, 0.15);
 
+      /* Text Colors */
       --text-white: #F8FAFD;
       --text-gray: #8F99AD;
       --text-dim: #545C6E;
 
+      /* Switch & Status */
       --switch-off-bg: #232938;
       --switch-off-knob: #8C96A8;
       --switch-on-bg: #2EE8C2;
-      --switch-on-knob: #0C1D18;
 
       --radius-sm: 12px;
       --radius-md: 18px;
@@ -64,9 +67,6 @@
       --transition-smooth: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* ----------------------------------------------------
-       BASE RESETS & RESPONSIVE LAYOUT
-    ---------------------------------------------------- */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -85,15 +85,14 @@
       align-items: flex-start;
       padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 24px) 16px;
       overflow-x: hidden;
-      /* Warm Ambient Hearth Lighting in Deep Charcoal Space */
       background-image: 
         radial-gradient(circle at 10% 0%, rgba(255, 125, 60, 0.12) 0%, transparent 45%),
         radial-gradient(circle at 90% 15%, rgba(46, 232, 194, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 65%, rgba(139, 92, 246, 0.03) 0%, transparent 60%);
+        radial-gradient(circle at 50% 65%, rgba(56, 189, 248, 0.05) 0%, transparent 60%);
       background-attachment: fixed;
     }
 
-    button, input {
+    button, input, select {
       user-select: none;
       -webkit-user-select: none;
       font-family: inherit;
@@ -104,13 +103,13 @@
       max-width: 440px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
       margin: 0 auto;
       padding-bottom: 24px;
     }
 
     /* ----------------------------------------------------
-       SMART HOME GLASS TILES & CARDS
+       SMART TILES & CARDS
     ---------------------------------------------------- */
     .smart-tile {
       background: var(--card-bg);
@@ -125,12 +124,8 @@
       transition: var(--transition-smooth);
     }
 
-    .smart-tile:hover {
-      border-color: var(--card-border-hover);
-    }
-
     /* ----------------------------------------------------
-       TOP DASHBOARD HEADER (SMART HOUSE STATUS)
+       TOP DASHBOARD HEADER
     ---------------------------------------------------- */
     .top-house-header {
       display: flex;
@@ -164,7 +159,6 @@
     .house-title {
       font-size: 0.95rem;
       font-weight: 700;
-      letter-spacing: -0.01em;
       line-height: 1.2;
     }
 
@@ -173,7 +167,6 @@
       color: var(--text-gray);
     }
 
-    /* Weather & Time Pill */
     .climate-clock-pill {
       display: flex;
       align-items: center;
@@ -187,72 +180,83 @@
       color: var(--text-gray);
     }
 
-    .climate-clock-pill span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
     .climate-clock-pill strong {
       color: var(--text-white);
       font-weight: 700;
     }
 
     /* ----------------------------------------------------
-       HERO ROOM CARD & MAIN LIGHTING CONTROLLER
+       ROOM SELECTOR TABS (แบบ A: สลับห้อง)
     ---------------------------------------------------- */
-    .room-hero-card {
-      padding: 22px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
+    .room-tabs-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: rgba(15, 19, 28, 0.75);
+      padding: 6px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--card-border);
     }
 
-    .room-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .room-badge-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    /* Vibrant Teal Room Icon Square */
-    .room-icon-square {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      background: var(--teal-primary);
-      color: #0B1916;
+    .room-tab-btn {
+      min-height: 44px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-gray);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 20px var(--teal-glow);
-    }
-
-    .room-name-col {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .room-title {
-      font-size: 1.15rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      display: flex;
-      align-items: center;
       gap: 8px;
+      transition: var(--transition-smooth);
     }
 
-    .room-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-gray);
+    .room-tab-btn:hover {
+      color: var(--text-white);
     }
 
-    /* BLE Connect Pill Button */
+    .room-tab-btn.active {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--text-white);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .room-tab-btn.active.tab-living {
+      color: var(--teal-primary);
+      border-color: rgba(46, 232, 194, 0.35);
+      background: rgba(46, 232, 194, 0.1);
+    }
+
+    .room-tab-btn.active.tab-bedroom {
+      color: var(--cyan-ac);
+      border-color: rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    /* Tab Content Panels */
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .tab-panel.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ----------------------------------------------------
+       BLE STATUS PILL BUTTON
+    ---------------------------------------------------- */
     .ble-status-pill {
       display: inline-flex;
       align-items: center;
@@ -268,17 +272,12 @@
       transition: var(--transition-smooth);
     }
 
-    .ble-status-pill:hover {
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
     .ble-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: #EF4444;
       box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
-      transition: var(--transition-smooth);
     }
 
     .ble-status-pill.connected {
@@ -299,10 +298,54 @@
       box-shadow: 0 0 8px #F59E0B;
     }
 
-    /* Cozy Ambient Room Banner Illustration with Warm Hearth Glow */
+    /* ----------------------------------------------------
+       LIVING ROOM: LIGHTING HERO CARD
+    ---------------------------------------------------- */
+    .room-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .room-badge-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .room-icon-square {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: var(--teal-primary);
+      color: #0B1916;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--teal-glow);
+    }
+
+    .room-icon-square.ac-icon {
+      background: var(--cyan-ac);
+      box-shadow: 0 0 20px var(--cyan-ac-glow);
+    }
+
+    .room-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .room-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-gray);
+    }
+
+    /* Architectural Banner */
     .room-preview-banner {
       width: 100%;
-      height: 140px;
+      height: 130px;
       border-radius: var(--radius-md);
       position: relative;
       overflow: hidden;
@@ -312,6 +355,7 @@
       flex-direction: column;
       justify-content: space-between;
       padding: 14px 16px;
+      margin-bottom: 14px;
     }
 
     .room-preview-banner::before {
@@ -330,7 +374,7 @@
 
     .is-on .room-preview-banner::before {
       opacity: 0.95;
-      background: radial-gradient(circle, var(--amber-glow) 0%, rgba(255, 125, 60, 0.2) 40%, transparent 75%);
+      background: radial-gradient(circle, var(--amber-glow) 0%, rgba(255, 125, 60, 0.25) 40%, transparent 75%);
     }
 
     .banner-top-badges {
@@ -351,8 +395,6 @@
       border-radius: var(--radius-full);
       font-size: 0.68rem;
       font-weight: 700;
-      color: #FFFFFF;
-      letter-spacing: 0.03em;
     }
 
     .live-dot {
@@ -384,7 +426,6 @@
       font-size: 0.85rem;
       font-weight: 700;
       color: #FFFFFF;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
     }
 
     .banner-state-caption {
@@ -392,9 +433,7 @@
       color: var(--text-gray);
     }
 
-    /* ----------------------------------------------------
-       DEVICE ROW: LUXURY TOGGLE SWITCH
-    ---------------------------------------------------- */
+    /* Device Row & Toggle Switch */
     .device-row-tile {
       display: flex;
       align-items: center;
@@ -403,7 +442,7 @@
       background: var(--card-inner-bg);
       border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: var(--radius-md);
-      transition: var(--transition-smooth);
+      margin-bottom: 12px;
     }
 
     .device-row-left {
@@ -432,16 +471,9 @@
       box-shadow: 0 0 15px var(--amber-glow);
     }
 
-    .device-text-col {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
     .device-main-title {
       font-size: 0.92rem;
       font-weight: 700;
-      color: var(--text-white);
     }
 
     .device-sub-info {
@@ -449,7 +481,7 @@
       color: var(--text-gray);
     }
 
-    /* High-End iOS / Smart Home Glowing Toggle Switch */
+    /* Smart Toggle Switch */
     .smart-toggle-switch {
       position: relative;
       width: 66px;
@@ -462,10 +494,6 @@
       box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5);
       transition: var(--transition-smooth);
       outline: none;
-    }
-
-    .smart-toggle-switch:focus-visible {
-      box-shadow: 0 0 0 3px var(--teal-primary);
     }
 
     .toggle-knob {
@@ -487,26 +515,17 @@
       background: rgba(0, 0, 0, 0.4);
     }
 
-    /* Switch ON State */
     .is-on .smart-toggle-switch {
       background: var(--switch-on-bg);
-      border-color: rgba(255, 255, 255, 0.2);
       box-shadow: 0 0 20px var(--teal-glow);
     }
 
     .is-on .smart-toggle-switch .toggle-knob {
       transform: translateX(28px);
       background: #FFFFFF;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
     }
 
-    .is-on .smart-toggle-switch .toggle-knob-inner-dot {
-      background: var(--teal-dark);
-    }
-
-    /* ----------------------------------------------------
-       SIGNATURE SEGMENTED DOTS STATUS BAR
-    ---------------------------------------------------- */
+    /* Segmented Dots */
     .segmented-status-row {
       display: flex;
       flex-direction: column;
@@ -546,43 +565,256 @@
     }
 
     /* ----------------------------------------------------
-       COUNTDOWN TIMER SECTION (WITH MANUAL TIME INPUT)
+       BEDROOM: SAMSUNG AC REMOTE CONTROLLER
     ---------------------------------------------------- */
-    .timer-tile {
+    .ac-hero-box {
+      background: linear-gradient(135deg, rgba(14, 28, 48, 0.8), rgba(11, 19, 32, 0.95));
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-    }
-
-    .section-head-row {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 14px;
     }
 
-    .section-title {
-      font-size: 0.95rem;
+    .ac-hero-box::before {
+      content: '';
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--cyan-ac-glow) 0%, transparent 70%);
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    .ac-power-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
       font-weight: 700;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--cyan-ac);
+    }
+
+    .ac-temp-huge {
+      font-family: var(--font-mono);
+      font-size: 4rem;
+      font-weight: 800;
+      color: var(--cyan-ac);
+      text-shadow: 0 0 25px var(--cyan-ac-glow);
+      line-height: 1;
+      display: flex;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .ac-temp-unit {
+      font-size: 1.8rem;
+      color: var(--text-gray);
+      margin-top: 6px;
+    }
+
+    /* Temperature Stepper Buttons */
+    .temp-adjust-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .btn-temp-stepper {
+      min-height: 52px;
+      border-radius: var(--radius-md);
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-white);
+      font-size: 1.6rem;
+      font-weight: 700;
+      cursor: pointer;
       display: flex;
       align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition-smooth);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-temp-stepper:hover {
+      background: rgba(51, 65, 85, 0.9);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .btn-temp-stepper:active {
+      transform: scale(0.95);
+    }
+
+    /* AC Power Row (ON / OFF) */
+    .ac-power-buttons-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .btn-ac-power {
+      min-height: 48px;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition-smooth);
+      border: 1px solid transparent;
+    }
+
+    .btn-ac-power.on {
+      background: rgba(5, 150, 105, 0.25);
+      border-color: #10B981;
+      color: #6EE7B7;
+    }
+    .btn-ac-power.on:hover, .btn-ac-power.on.active {
+      background: #059669;
+      color: #FFFFFF;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-ac-power.off {
+      background: rgba(225, 29, 72, 0.2);
+      border-color: #F43F5E;
+      color: #FDA4AF;
+    }
+    .btn-ac-power.off:hover, .btn-ac-power.off.active {
+      background: #E11D48;
+      color: #FFFFFF;
+      box-shadow: 0 0 16px rgba(244, 63, 94, 0.4);
+    }
+
+    .btn-ac-power:active {
+      transform: scale(0.96);
+    }
+
+    /* Mode & Fan Speed Control Tiles */
+    .control-group-tile {
+      background: var(--card-inner-bg);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .control-group-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .segmented-pills-row {
+      display: grid;
       gap: 8px;
     }
 
-    .section-title svg {
-      color: var(--teal-primary);
+    .pills-3 {
+      grid-template-columns: repeat(3, 1fr);
     }
 
-    .badge-chip {
-      font-size: 0.72rem;
+    .pills-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .pill-btn {
+      min-height: 42px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--text-gray);
+      font-size: 0.82rem;
       font-weight: 700;
-      padding: 3px 9px;
-      border-radius: var(--radius-full);
-      background: var(--teal-subtle);
-      color: var(--teal-primary);
-      border: 1px solid rgba(46, 232, 194, 0.25);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: var(--transition-smooth);
     }
 
-    /* Manual Time Input Section (กรอกเวลาได้) */
+    .pill-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-white);
+    }
+
+    .pill-btn:active {
+      transform: scale(0.95);
+    }
+
+    .pill-btn.active {
+      background: var(--cyan-ac-subtle);
+      border-color: var(--cyan-ac);
+      color: var(--cyan-ac);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+    }
+
+    /* Resend Signal Button */
+    .btn-resend-signal {
+      min-height: 46px;
+      width: 100%;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #0284C7, #0369A1);
+      border: 1px solid #38BDF8;
+      color: #FFFFFF;
+      font-size: 0.9rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4);
+      transition: var(--transition-smooth);
+    }
+
+    .btn-resend-signal:hover {
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-resend-signal:active {
+      transform: scale(0.97);
+    }
+
+    /* AC Live Feedback Pill */
+    .ac-live-feedback {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(15, 18, 25, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      color: var(--text-gray);
+    }
+
+    /* ----------------------------------------------------
+       COUNTDOWN TIMER (LIVING ROOM)
+    ---------------------------------------------------- */
     .custom-input-card {
       background: var(--card-inner-bg);
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -591,12 +823,12 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      margin-bottom: 12px;
     }
 
     .input-label-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
       font-size: 0.78rem;
       color: var(--text-gray);
       font-weight: 600;
@@ -605,7 +837,7 @@
     .time-stepper-box {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .stepper-btn {
@@ -615,7 +847,7 @@
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.08);
       color: var(--text-white);
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 700;
       cursor: pointer;
       display: flex;
@@ -626,7 +858,6 @@
 
     .stepper-btn:hover {
       background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
     }
 
     .stepper-btn:active {
@@ -645,7 +876,6 @@
       font-weight: 700;
       text-align: center;
       outline: none;
-      transition: var(--transition-smooth);
     }
 
     .custom-min-input:focus {
@@ -653,7 +883,6 @@
       box-shadow: 0 0 12px var(--teal-subtle);
     }
 
-    /* Start Button with Electric Cyan Gradient */
     .btn-start-timer {
       min-height: 44px;
       width: 100%;
@@ -672,20 +901,11 @@
       transition: var(--transition-smooth);
     }
 
-    .btn-start-timer:hover {
-      box-shadow: 0 6px 20px rgba(46, 232, 194, 0.6);
-      transform: translateY(-1px);
-    }
-
-    .btn-start-timer:active {
-      transform: scale(0.97);
-    }
-
-    /* Preset Quick Buttons */
     .quick-presets-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 8px;
+      margin-bottom: 12px;
     }
 
     .preset-pill-btn {
@@ -697,30 +917,17 @@
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
-      transition: var(--transition-smooth);
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    .preset-pill-btn:hover {
-      color: var(--text-white);
-      border-color: rgba(255, 255, 255, 0.15);
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .preset-pill-btn:active {
-      transform: scale(0.95);
     }
 
     .preset-pill-btn.active {
       background: var(--teal-subtle);
       border-color: var(--teal-primary);
       color: var(--teal-primary);
-      box-shadow: 0 0 12px var(--teal-subtle);
     }
 
-    /* Active Running Countdown Card */
     .active-countdown-panel {
       display: none;
       flex-direction: column;
@@ -743,15 +950,6 @@
       font-weight: 800;
       color: var(--teal-primary);
       text-shadow: 0 0 15px var(--teal-glow);
-      letter-spacing: -0.02em;
-    }
-
-    .timer-action-badge {
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-gray);
     }
 
     .timer-progress-bar-track {
@@ -760,15 +958,12 @@
       border-radius: 3px;
       background: #1C2230;
       overflow: hidden;
-      position: relative;
     }
 
     .timer-progress-bar-fill {
       height: 100%;
       width: 100%;
       background: linear-gradient(90deg, #18B896, #2EE8C2);
-      border-radius: 3px;
-      box-shadow: 0 0 10px var(--teal-glow);
       transition: width 1s linear;
     }
 
@@ -781,38 +976,11 @@
       border: 1px solid rgba(239, 68, 68, 0.25);
       border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: var(--transition-smooth);
-    }
-
-    .btn-cancel-countdown:hover {
-      background: rgba(239, 68, 68, 0.2);
     }
 
     /* ----------------------------------------------------
-       ACTIVITY FEED TILE
+       ACTIVITY FEED
     ---------------------------------------------------- */
-    .activity-tile {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .btn-clear-feed {
-      background: transparent;
-      border: none;
-      color: var(--text-dim);
-      font-size: 0.72rem;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-      transition: var(--transition-smooth);
-    }
-
-    .btn-clear-feed:hover {
-      color: var(--text-gray);
-    }
-
     .activity-feed-list {
       display: flex;
       flex-direction: column;
@@ -831,12 +999,6 @@
       font-size: 0.8rem;
     }
 
-    .feed-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
     .feed-pill-dot {
       width: 8px;
       height: 8px;
@@ -844,73 +1006,9 @@
       background: var(--text-dim);
     }
 
-    .feed-pill-dot.on {
-      background: var(--teal-primary);
-      box-shadow: 0 0 8px var(--teal-primary);
-    }
-    .feed-pill-dot.off {
-      background: var(--text-dim);
-    }
-    .feed-pill-dot.info {
-      background: var(--amber-warm);
-    }
+    .feed-pill-dot.on { background: var(--teal-primary); box-shadow: 0 0 8px var(--teal-primary); }
+    .feed-pill-dot.ac { background: var(--cyan-ac); box-shadow: 0 0 8px var(--cyan-ac); }
 
-    .feed-time {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--text-dim);
-    }
-
-    .empty-feed {
-      text-align: center;
-      padding: 14px;
-      color: var(--text-dim);
-      font-size: 0.8rem;
-    }
-
-    /* ----------------------------------------------------
-       BOTTOM FAMILY / SYSTEM FOOTER
-    ---------------------------------------------------- */
-    .family-members-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      padding: 10px 14px;
-      background: rgba(18, 22, 32, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: var(--radius-md);
-      font-size: 0.72rem;
-      color: var(--text-gray);
-    }
-
-    .member-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .member-dot-online {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--teal-primary);
-    }
-
-    .app-footer-info {
-      text-align: center;
-      padding: 8px 0;
-      font-size: 0.72rem;
-      color: var(--text-dim);
-    }
-
-    .app-footer-info a {
-      color: var(--text-gray);
-      text-decoration: none;
-    }
-
-    /* ----------------------------------------------------
-       TOAST NOTIFICATIONS
-    ---------------------------------------------------- */
     .toast-tray {
       position: fixed;
       bottom: 24px;
@@ -947,57 +1045,16 @@
       opacity: 1;
       transform: translateY(0);
     }
-
-    .compat-alert {
-      display: none;
-      padding: 12px 16px;
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: var(--radius-md);
-      font-size: 0.82rem;
-      color: #FCA5A5;
-      line-height: 1.45;
-    }
-
-    .pwa-chip-banner {
-      display: none;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      background: rgba(46, 232, 194, 0.1);
-      border: 1px solid rgba(46, 232, 194, 0.25);
-      border-radius: var(--radius-md);
-      font-size: 0.8rem;
-      color: var(--teal-primary);
-    }
-
-    .pwa-chip-banner.show {
-      display: flex;
-    }
   </style>
 </head>
 <body>
 
   <main class="app-viewport">
 
-    <!-- Compatibility Alert for Unsupported Browsers -->
-    <div id="compatBanner" class="compat-alert" role="alert">
-      <strong>⚠️ เบราว์เซอร์นี้ยังไม่รองรับ Web Bluetooth API</strong><br>
-      • สำหรับ Android/PC/Mac: โปรดเปิดด้วย Google Chrome หรือ Edge<br>
-      • สำหรับ iOS: โปรดเปิดผ่านเบราว์เซอร์ Bluefy
-    </div>
-
-    <!-- PWA Install Banner -->
-    <div id="pwaBanner" class="pwa-chip-banner">
-      <span>📲 ติดตั้งลงหน้าจอหลักเพื่อใช้แบบออฟไลน์</span>
-      <button id="pwaInstallBtn" style="padding:4px 10px; background:var(--teal-primary); color:#0B1916; border:none; border-radius:6px; font-weight:700; font-size:0.75rem; cursor:pointer;">ติดตั้ง</button>
-    </div>
-
     <!-- Top House Header -->
     <header class="top-house-header">
       <div class="house-meta">
         <div class="house-avatar" aria-hidden="true">
-          <!-- House Icon -->
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -1005,263 +1062,348 @@
         </div>
         <div>
           <div class="house-title">Smart House</div>
-          <div class="house-date" id="currentDateStr">ESP32-C6 Smart Home</div>
+          <div class="house-date" id="currentDateStr">ESP32 BLE Hub</div>
         </div>
       </div>
 
-      <!-- Weather & Live Clock Pill -->
       <div class="climate-clock-pill">
         <span>🌤️ <strong>28°C</strong></span>
         <span>💧 <strong>65%</strong></span>
-        <span>🕒 <strong id="liveClock">23:18</strong></span>
+        <span>🕒 <strong id="liveClock">22:00</strong></span>
       </div>
     </header>
 
-    <!-- Main Living Room / Lighting Hero Card -->
-    <section class="smart-tile room-hero-card" id="roomCard">
-      <!-- Room Title & BLE Status Row -->
-      <div class="room-header-row">
-        <div class="room-badge-group">
-          <div class="room-icon-square" aria-hidden="true">
-            <!-- Sofa / Living Room Icon -->
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"></path>
-              <path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z"></path>
-              <path d="M4 18v2"></path>
-              <path d="M20 18v2"></path>
-            </svg>
+    <!-- Room Selector Tabs (แบบ A: สลับห้อง) -->
+    <nav class="room-tabs-container" aria-label="เลือกห้องควบคุม">
+      <button id="tabBtnLiving" class="room-tab-btn active tab-living">
+        <span>🛋️ ห้องนั่งเล่น (ไฟ)</span>
+      </button>
+      <button id="tabBtnBedroom" class="room-tab-btn tab-bedroom">
+        <span>❄️ ห้องนอน (แอร์)</span>
+      </button>
+    </nav>
+
+    <!-- ====================================================
+         TAB 1: LIVING ROOM (ESP32-C6 Smart Switch)
+    ==================================================== -->
+    <section id="panelLiving" class="tab-panel active">
+      
+      <!-- Living Room Main Lighting Card -->
+      <div class="smart-tile" id="roomCard">
+        <div class="room-header-row">
+          <div class="room-badge-group">
+            <div class="room-icon-square" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"></path>
+                <path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z"></path>
+                <path d="M4 18v2"></path><path d="M20 18v2"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="room-title">Living Room</div>
+              <div class="room-subtitle">Main Lighting • ESP32-C6</div>
+            </div>
           </div>
-          <div class="room-name-col">
-            <div class="room-title">Living Room</div>
-            <div class="room-subtitle">Main Lighting • 41 m²</div>
+
+          <button id="bleToggleBtn" class="ble-status-pill disconnected" aria-label="เชื่อมต่อบลูทูธสวิตช์ไฟ">
+            <span class="ble-dot"></span>
+            <span id="bleStatusLabel">BLE Disconnected</span>
+          </button>
+        </div>
+
+        <!-- Room Preview Banner -->
+        <div class="room-preview-banner">
+          <div class="banner-top-badges">
+            <div class="live-badge"><span class="live-dot"></span><span>LIVE BLE</span></div>
+            <div style="font-size:0.7rem; color:var(--text-gray); font-family:var(--font-mono);">SmartSwitch_C6</div>
+          </div>
+          <div class="banner-bottom-info">
+            <div>
+              <div class="banner-device-name">Smart Switch Relay</div>
+              <div class="banner-state-caption" id="syncStatusCaption">แตะสวิตช์ด้านล่างเพื่อเปิดหรือปิดไฟ</div>
+            </div>
+            <div id="stateBadgeTag" style="padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:800; background:rgba(0,0,0,0.5); color:var(--text-gray);">
+              OFF
+            </div>
           </div>
         </div>
 
-        <!-- BLE Status / Reconnect Button -->
-        <button id="bleToggleBtn" class="ble-status-pill disconnected" aria-label="เชื่อมต่อบลูทูธ">
-          <span class="ble-dot"></span>
-          <span id="bleStatusLabel">BLE Disconnected</span>
-        </button>
-      </div>
+        <!-- Toggle Row -->
+        <div class="device-row-tile">
+          <div class="device-row-left">
+            <div class="device-avatar-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M9 2h6l3 7H6l3-7z"></path><path d="M12 9v9"></path><path d="M9 22h6"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="device-main-title">Lightning</div>
+              <div class="device-sub-info">Chandelier, Dimmers (ESP32-C6)</div>
+            </div>
+          </div>
 
-      <!-- Architectural Lighting Preview Banner -->
-      <div class="room-preview-banner">
-        <div class="banner-top-badges">
-          <div class="live-badge">
-            <span class="live-dot"></span>
-            <span>LIVE BLE</span>
-          </div>
-          <div id="signalBadge" style="font-size:0.7rem; color:var(--text-gray); font-family:var(--font-mono);">
-            SmartSwitch_C6
-          </div>
+          <button id="masterToggleSwitch" class="smart-toggle-switch" aria-label="สวิตช์ไฟหลัก" aria-pressed="false">
+            <div class="toggle-knob"><div class="toggle-knob-inner-dot"></div></div>
+          </button>
         </div>
 
-        <div class="banner-bottom-info">
-          <div>
-            <div class="banner-device-name">Smart Switch Relay</div>
-            <div class="banner-state-caption" id="syncStatusCaption">แตะสวิตช์ด้านล่างเพื่อเปิดหรือปิดไฟ</div>
+        <!-- Segmented Status Row -->
+        <div class="segmented-status-row">
+          <div class="segmented-header">
+            <span>Relay Telemetry</span>
+            <span id="telemetryValue">0% (Standby)</span>
           </div>
-          <div id="stateBadgeTag" style="padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:800; background:rgba(0,0,0,0.5); color:var(--text-gray);">
-            OFF
-          </div>
-        </div>
-      </div>
-
-      <!-- Luxury Interactive Lighting Toggle Row -->
-      <div class="device-row-tile">
-        <div class="device-row-left">
-          <div class="device-avatar-icon">
-            <!-- Lamp Icon -->
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 2h6l3 7H6l3-7z"></path>
-              <path d="M12 9v9"></path>
-              <path d="M9 22h6"></path>
-            </svg>
-          </div>
-          <div class="device-text-col">
-            <div class="device-main-title">Lightning</div>
-            <div class="device-sub-info">Chandelier, Dimmers (ESP32-C6)</div>
-          </div>
-        </div>
-
-        <!-- The Glowing Smart Switch Toggle -->
-        <button id="masterToggleSwitch" class="smart-toggle-switch" aria-label="สวิตช์ไฟหลัก" aria-pressed="false">
-          <div class="toggle-knob">
-            <div class="toggle-knob-inner-dot"></div>
-          </div>
-        </button>
-      </div>
-
-      <!-- Segmented Dot Steps (Matching Image Dimmer Style) -->
-      <div class="segmented-status-row">
-        <div class="segmented-header">
-          <span>Relay Power Telemetry</span>
-          <span id="telemetryValue">0% (Standby)</span>
-        </div>
-        <div class="segmented-dots-track" id="dotsTrack" aria-hidden="true">
-          <!-- 16 Segmented Dots generated dynamically -->
+          <div class="segmented-dots-track" id="dotsTrack" aria-hidden="true"></div>
         </div>
       </div>
+
+      <!-- Living Room Countdown Timer Card -->
+      <div class="smart-tile">
+        <div class="room-header-row" style="margin-bottom:12px;">
+          <div style="font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal-primary)" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>ตั้งเวลานับถอยหลังไฟ</span>
+          </div>
+          <span id="timerTargetBadge" style="font-size:0.72rem; font-weight:700; padding:3px 9px; border-radius:var(--radius-full); background:var(--teal-subtle); color:var(--teal-primary); border:1px solid rgba(46,232,194,0.25);">
+            สั่งปิดเมื่อครบเวลา
+          </span>
+        </div>
+
+        <div class="custom-input-card">
+          <div class="input-label-row">
+            <span>กรอกระยะเวลานับถอยหลัง (นาที)</span>
+            <span id="targetActionHint" style="color:var(--amber-warm);">ครบเวลาจะสลับไฟ</span>
+          </div>
+          <div class="time-stepper-box">
+            <button id="btnMinus5" class="stepper-btn">-5</button>
+            <input type="number" id="customMinutesInput" class="custom-min-input" value="15" min="1" max="1440" inputmode="numeric">
+            <button id="btnPlus5" class="stepper-btn">+5</button>
+            <button id="btnPlus15" class="stepper-btn">+15</button>
+          </div>
+          <button id="btnStartCustomTimer" class="btn-start-timer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span>เริ่มนับถอยหลังทันที</span>
+          </button>
+        </div>
+
+        <div class="quick-presets-row">
+          <button class="preset-pill-btn" data-minutes="5">5 นาที</button>
+          <button class="preset-pill-btn" data-minutes="15">15 นาที</button>
+          <button class="preset-pill-btn" data-minutes="30">30 นาที</button>
+          <button class="preset-pill-btn" data-minutes="60">1 ชม.</button>
+        </div>
+
+        <div id="activeCountdownBox" class="active-countdown-panel">
+          <div class="timer-digits-big" id="countdownDigits">00:15:00</div>
+          <div style="font-size:0.75rem; color:var(--text-gray);" id="countdownActionTag">กำลังนับถอยหลังเพื่อปิดไฟ</div>
+          <div class="timer-progress-bar-track">
+            <div id="countdownProgressBar" class="timer-progress-bar-fill"></div>
+          </div>
+          <button id="cancelCountdownBtn" class="btn-cancel-countdown">✕ ยกเลิกการนับถอยหลัง</button>
+        </div>
+      </div>
+
     </section>
 
-    <!-- Countdown Timer Card (พร้อมแบบกรอกเวลาได้) -->
-    <section class="smart-tile timer-tile">
-      <div class="section-head-row">
-        <div class="section-title">
-          <!-- Clock SVG -->
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <span>ตั้งเวลานับถอยหลัง</span>
-        </div>
-        <span id="timerTargetBadge" class="badge-chip">สั่งปิดเมื่อครบเวลา</span>
-      </div>
+    <!-- ====================================================
+         TAB 2: BEDROOM (Samsung AC Remote - ESP32-C3)
+    ==================================================== -->
+    <section id="panelBedroom" class="tab-panel">
+      
+      <div class="smart-tile">
+        <div class="room-header-row">
+          <div class="room-badge-group">
+            <div class="room-icon-square ac-icon" aria-hidden="true">
+              <!-- Snowflake / AC Icon -->
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="2" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                <line x1="19.07" y1="4.93" x2="4.93" y2="19.07"></line>
+              </svg>
+            </div>
+            <div>
+              <div class="room-title">Bedroom</div>
+              <div class="room-subtitle">Samsung AC • ESP32-C3</div>
+            </div>
+          </div>
 
-      <!-- Custom Time Input (แบบกรอกเวลาได้ตามที่ต้องการ) -->
-      <div class="custom-input-card">
-        <div class="input-label-row">
-          <span>กรอกระยะเวลานับถอยหลัง (นาที)</span>
-          <span id="targetActionHint" style="color:var(--amber-warm);">ครบเวลาจะสลับสถานะไฟ</span>
+          <button id="btnConnectAC" class="ble-status-pill disconnected" aria-label="เชื่อมต่อบลูทูธแอร์">
+            <span class="ble-dot" id="acBleDot"></span>
+            <span id="acStatusLabel">เชื่อมต่อแอร์</span>
+          </button>
         </div>
 
-        <div class="time-stepper-box">
-          <button id="btnMinus5" class="stepper-btn" title="ลด 5 นาที">-5</button>
-          <input type="number" id="customMinutesInput" class="custom-min-input" value="15" min="1" max="1440" placeholder="นาที" inputmode="numeric">
-          <button id="btnPlus5" class="stepper-btn" title="เพิ่ม 5 นาที">+5</button>
-          <button id="btnPlus15" class="stepper-btn" title="เพิ่ม 15 นาที">+15</button>
+        <!-- AC Temperature Showcase Box -->
+        <div class="ac-hero-box">
+          <div class="ac-power-badge" id="acPowerStateBadge">
+            <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#38BDF8;"></span>
+            <span id="acPowerStateText">สถานะ: เปิดแอร์ (ON)</span>
+          </div>
+
+          <div class="ac-temp-huge">
+            <span id="acTempVal">25</span>
+            <span class="ac-temp-unit">°C</span>
+          </div>
+
+          <div style="font-size:0.75rem; color:var(--text-gray); font-family:var(--font-mono);" id="acCurrentModeSummary">
+            Cool • พัดลม Auto
+          </div>
         </div>
 
-        <button id="btnStartCustomTimer" class="btn-start-timer">
-          <!-- Play Icon -->
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-          <span>เริ่มนับถอยหลังทันที</span>
+        <!-- Temperature Stepper Buttons (- / +) ส่งคำสั่งทันที -->
+        <div class="temp-adjust-row">
+          <button id="btnTempMinus" class="btn-temp-stepper" title="ลดอุณหภูมิ">−</button>
+          <button id="btnTempPlus" class="btn-temp-stepper" title="เพิ่มอุณหภูมิ">+</button>
+        </div>
+
+        <!-- AC Power Controls (เปิดแอร์ / ปิดแอร์) -->
+        <div class="ac-power-buttons-row">
+          <button id="btnAcPowerOn" class="btn-ac-power on active">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+            <span>เปิดแอร์ (ON)</span>
+          </button>
+          <button id="btnAcPowerOff" class="btn-ac-power off">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line></svg>
+            <span>ปิดแอร์ (OFF)</span>
+          </button>
+        </div>
+
+        <!-- Mode Select (Segmented Touch Pills) -->
+        <div class="control-group-tile">
+          <div class="control-group-title">โหมดการทำงาน (Mode)</div>
+          <div class="segmented-pills-row pills-3" id="acModePills">
+            <button class="pill-btn active" data-mode="1">❄️ Cool</button>
+            <button class="pill-btn" data-mode="2">💧 Dry</button>
+            <button class="pill-btn" data-mode="3">🌀 Fan</button>
+          </div>
+        </div>
+
+        <!-- Fan Speed Select (Segmented Touch Pills) -->
+        <div class="control-group-tile">
+          <div class="control-group-title">ระดับพัดลม (Fan Speed)</div>
+          <div class="segmented-pills-row pills-4" id="acFanPills">
+            <button class="pill-btn active" data-fan="0">Auto</button>
+            <button class="pill-btn" data-fan="1">เบา (1)</button>
+            <button class="pill-btn" data-fan="2">กลาง (2)</button>
+            <button class="pill-btn" data-fan="3">แรง (3)</button>
+          </div>
+        </div>
+
+        <!-- Resend Signal Button -->
+        <button id="btnAcResend" class="btn-resend-signal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4.93 19.07A10 10 0 0 1 12 2a10 10 0 0 1 7.07 17.07l-1.41-1.41A8 8 0 0 0 12 4a8 8 0 0 0-5.66 13.66l-1.41 1.41z"></path><path d="M7.76 16.24A6 6 0 0 1 12 6a6 6 0 0 1 4.24 10.24l-1.41-1.41A4 4 0 0 0 12 8a4 4 0 0 0-2.83 6.83l-1.41 1.41z"></path></svg>
+          <span>📡 ยิงสัญญาณซ้ำอีกครั้ง</span>
         </button>
-      </div>
 
-      <!-- Quick Preset Buttons -->
-      <div class="quick-presets-row" role="group" aria-label="ปุ่มลัดตั้งเวลา">
-        <button class="preset-pill-btn" data-minutes="5">5 นาที</button>
-        <button class="preset-pill-btn" data-minutes="15">15 นาที</button>
-        <button class="preset-pill-btn" data-minutes="30">30 นาที</button>
-        <button class="preset-pill-btn" data-minutes="60">1 ชม.</button>
-      </div>
-
-      <!-- Active Running Countdown Display Panel -->
-      <div id="activeCountdownBox" class="active-countdown-panel" aria-live="polite">
-        <div class="timer-digits-big" id="countdownDigits">00:15:00</div>
-        <div class="timer-action-badge" id="countdownActionTag">กำลังนับถอยหลังเพื่อปิดไฟ</div>
-        
-        <div class="timer-progress-bar-track">
-          <div id="countdownProgressBar" class="timer-progress-bar-fill"></div>
+        <!-- Live Transmission Feedback -->
+        <div class="ac-live-feedback" style="margin-top:10px;">
+          <span>บันทึกคำสั่งล่าสุด:</span>
+          <span id="acLogText" style="color:var(--cyan-ac); font-weight:700;">พร้อมใช้งาน</span>
         </div>
-
-        <button id="cancelCountdownBtn" class="btn-cancel-countdown">
-          ✕ ยกเลิกการนับถอยหลัง
-        </button>
       </div>
+
     </section>
 
-    <!-- Activity Log Tile -->
-    <section class="smart-tile activity-tile">
-      <div class="section-head-row">
-        <div class="section-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-gray);">
-            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span>ประวัติการทำงานล่าสุด</span>
+    <!-- Global Activity Log Tile (รวมทุกคำสั่ง) -->
+    <section class="smart-tile">
+      <div class="room-header-row" style="margin-bottom:10px;">
+        <div style="font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:var(--text-gray);"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>ประวัติการทำงานล่าสุด (Smart Log)</span>
         </div>
-        <button id="clearFeedBtn" class="btn-clear-feed">ล้างข้อมูล</button>
+        <button id="clearFeedBtn" style="background:transparent; border:none; color:var(--text-dim); font-size:0.75rem; font-weight:700; cursor:pointer;">ล้างข้อมูล</button>
       </div>
-
-      <ul id="activityFeedList" class="activity-feed-list" aria-live="polite">
-        <!-- Rendered dynamically -->
-      </ul>
+      <ul id="activityFeedList" class="activity-feed-list" aria-live="polite"></ul>
     </section>
-
-    <!-- Bottom Family Member Status Bar (as in image) -->
-    <div class="family-members-row">
-      <div class="member-pill">
-        <span class="member-dot-online"></span>
-        <span>ESP32-C6</span>
-      </div>
-      <div class="member-pill">
-        <span class="member-dot-online"></span>
-        <span>BLE Mesh</span>
-      </div>
-      <div class="member-pill">
-        <span class="member-dot-online"></span>
-        <span>Smart House</span>
-      </div>
-      <div class="member-pill">
-        <span class="member-dot-online"></span>
-        <span>Online</span>
-      </div>
-    </div>
 
     <!-- Footer -->
-    <footer class="app-footer-info">
-      <div>ESP32-C6 Smart House BLE Controller • <a href="https://github.com/jajx55jj/smart-switch" target="_blank" rel="noopener noreferrer">GitHub Repository</a></div>
+    <footer class="app-footer-info" style="text-align:center; padding:8px 0; font-size:0.72rem; color:var(--text-dim);">
+      <div>Smart House Multi-Room Controller • ESP32-C6 + ESP32-C3</div>
+      <div><a href="https://github.com/jajx55jj/smart-switch" target="_blank" rel="noopener noreferrer" style="color:var(--text-gray); text-decoration:none;">GitHub Repository</a></div>
     </footer>
 
   </main>
 
-  <!-- Toast Notification Container -->
   <div id="toastTray" class="toast-tray" aria-live="assertive"></div>
 
   <!-- ----------------------------------------------------
-       CORE LOGIC: BLE DRIVER, CUSTOM TIMER, ACTIVITY & PWA
+       CORE CONTROLLER SCRIPT (LIVING ROOM + BEDROOM AC)
   ---------------------------------------------------- -->
   <script>
     'use strict';
 
-    /**
-     * BLE CONFIGURATION (ESP32-C6 Exact Profile)
-     */
-    const BLE_CONFIG = {
-      DEVICE_NAME: 'SmartSwitch_C6',
+    /* ----------------------------------------------------
+       1. BLE CONFIGURATIONS
+    ---------------------------------------------------- */
+    // Device 1: Smart Switch C6 (Living Room)
+    const BLE_SWITCH_CONFIG = {
+      NAME: 'SmartSwitch_C6',
       SERVICE_UUID: '19b10000-e8f2-537e-4f6c-d104768a1214',
-      CHARACTERISTIC_UUID: '19b10001-e8f2-537e-4f6c-d104768a1214',
-      AUTO_RECONNECT_MAX: 5,
-      AUTO_RECONNECT_DELAY_MS: 3000
+      CHAR_UUID: '19b10001-e8f2-537e-4f6c-d104768a1214'
     };
 
-    /**
-     * STATE
-     */
+    // Device 2: Samsung AC Remote (Bedroom)
+    const BLE_AC_CONFIG = {
+      NAME: 'ESP32C3-AC-Remote',
+      SERVICE_UUID: '4fafc201-1fb5-459e-8fcc-c5c9c331914b',
+      CHAR_UUID: 'beb5483e-36e1-4688-b7f5-ea07361b26a8'
+    };
+
+    /* ----------------------------------------------------
+       2. SYSTEM STATE
+    ---------------------------------------------------- */
     const state = {
-      device: null,
-      server: null,
-      characteristic: null,
-      isConnected: false,
-      isConnecting: false,
-      isSwitchOn: false,
-      autoReconnectAttempts: 0,
-      userRequestedDisconnect: false,
-      lastOperationSource: null,
-      operationTimestamp: 0,
-      // Countdown Timer
-      timerId: null,
-      timerTotalSeconds: 0,
-      timerRemainingSeconds: 0,
-      timerTargetState: false
+      // Switch State
+      switch: {
+        device: null,
+        characteristic: null,
+        isConnected: false,
+        isConnecting: false,
+        isOn: false,
+        lastOpTime: 0,
+        lastOpSource: null
+      },
+      // AC State
+      ac: {
+        device: null,
+        characteristic: null,
+        isConnected: false,
+        isConnecting: false,
+        isSending: false,
+        power: 1, // 1 = ON, 0 = OFF
+        temp: 25, // 18 - 30
+        mode: 1,  // 1 = Cool, 2 = Dry, 3 = Fan
+        fan: 0    // 0 = Auto, 1 = Low, 2 = Mid, 3 = High
+      },
+      // Timer State
+      timer: {
+        id: null,
+        totalSeconds: 0,
+        remainingSeconds: 0,
+        targetState: false
+      }
     };
 
     /* DOM Selectors */
     const els = {
-      compatBanner: document.getElementById('compatBanner'),
-      pwaBanner: document.getElementById('pwaBanner'),
-      pwaInstallBtn: document.getElementById('pwaInstallBtn'),
+      // Room Tabs
+      tabBtnLiving: document.getElementById('tabBtnLiving'),
+      tabBtnBedroom: document.getElementById('tabBtnBedroom'),
+      panelLiving: document.getElementById('panelLiving'),
+      panelBedroom: document.getElementById('panelBedroom'),
+
+      // Switch Elements
+      roomCard: document.getElementById('roomCard'),
       bleToggleBtn: document.getElementById('bleToggleBtn'),
       bleStatusLabel: document.getElementById('bleStatusLabel'),
-      roomCard: document.getElementById('roomCard'),
       masterToggleSwitch: document.getElementById('masterToggleSwitch'),
       syncStatusCaption: document.getElementById('syncStatusCaption'),
       stateBadgeTag: document.getElementById('stateBadgeTag'),
       telemetryValue: document.getElementById('telemetryValue'),
       dotsTrack: document.getElementById('dotsTrack'),
+
+      // Switch Timer Elements
       timerTargetBadge: document.getElementById('timerTargetBadge'),
       targetActionHint: document.getElementById('targetActionHint'),
       customMinutesInput: document.getElementById('customMinutesInput'),
@@ -1274,6 +1416,25 @@
       countdownActionTag: document.getElementById('countdownActionTag'),
       countdownProgressBar: document.getElementById('countdownProgressBar'),
       cancelCountdownBtn: document.getElementById('cancelCountdownBtn'),
+
+      // AC Elements
+      btnConnectAC: document.getElementById('btnConnectAC'),
+      acBleDot: document.getElementById('acBleDot'),
+      acStatusLabel: document.getElementById('acStatusLabel'),
+      acTempVal: document.getElementById('acTempVal'),
+      acPowerStateBadge: document.getElementById('acPowerStateBadge'),
+      acPowerStateText: document.getElementById('acPowerStateText'),
+      acCurrentModeSummary: document.getElementById('acCurrentModeSummary'),
+      btnTempMinus: document.getElementById('btnTempMinus'),
+      btnTempPlus: document.getElementById('btnTempPlus'),
+      btnAcPowerOn: document.getElementById('btnAcPowerOn'),
+      btnAcPowerOff: document.getElementById('btnAcPowerOff'),
+      acModePills: document.getElementById('acModePills'),
+      acFanPills: document.getElementById('acFanPills'),
+      btnAcResend: document.getElementById('btnAcResend'),
+      acLogText: document.getElementById('acLogText'),
+
+      // Global
       activityFeedList: document.getElementById('activityFeedList'),
       clearFeedBtn: document.getElementById('clearFeedBtn'),
       toastTray: document.getElementById('toastTray'),
@@ -1281,33 +1442,16 @@
       currentDateStr: document.getElementById('currentDateStr')
     };
 
-    /* Generate Segmented Dots */
-    const TOTAL_DOTS = 16;
-    for (let i = 0; i < TOTAL_DOTS; i++) {
-      const dot = document.createElement('div');
-      dot.className = 'dot-step';
-      els.dotsTrack.appendChild(dot);
-    }
-
-    /* Live Clock & Date */
-    function updateLiveClock() {
-      const now = new Date();
-      els.liveClock.textContent = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-      const options = { day: 'numeric', month: 'short', year: 'numeric' };
-      els.currentDateStr.textContent = now.toLocaleDateString('en-GB', options);
-    }
-    setInterval(updateLiveClock, 1000);
-    updateLiveClock();
-
-    /* Haptic Feedback */
+    /* ----------------------------------------------------
+       3. HAPTIC & AUDIO HELPERS
+    ---------------------------------------------------- */
     function triggerHaptic(duration = 40) {
       if (navigator.vibrate) {
         try { navigator.vibrate(duration); } catch (e) {}
       }
     }
 
-    /* Audio Chime */
-    function playChime(freq = 660, duration = 0.25) {
+    function playTone(freq = 660, duration = 0.2) {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
@@ -1316,7 +1460,7 @@
         const gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -1325,14 +1469,13 @@
       } catch (e) {}
     }
 
-    /* Toast Notification */
     function showToast(msg, type = 'info') {
       const toast = document.createElement('div');
       toast.className = 'toast-msg';
       let icon = '💡';
       if (type === 'success') icon = '⚡';
       if (type === 'error') icon = '❌';
-      if (type === 'warning') icon = '⚠️';
+      if (type === 'ac') icon = '❄️';
       toast.innerHTML = `<span>${icon}</span> <span>${msg}</span>`;
       els.toastTray.appendChild(toast);
       requestAnimationFrame(() => toast.classList.add('show'));
@@ -1342,22 +1485,23 @@
       }, 3000);
     }
 
-    /* Activity Logs */
-    const STORAGE_KEY_FEED = 'smarthouse_c6_feed';
+    /* ----------------------------------------------------
+       4. ACTIVITY LOG (Feed)
+    ---------------------------------------------------- */
+    const STORAGE_KEY = 'smarthouse_unified_feed';
     function getLogs() {
       try {
-        const d = localStorage.getItem(STORAGE_KEY_FEED);
+        const d = localStorage.getItem(STORAGE_KEY);
         return d ? JSON.parse(d) : [];
       } catch (e) { return []; }
     }
 
-    function addLogEntry(action, source, stateType = 'info') {
+    function addLogEntry(action, source, tagType = 'on') {
       const logs = getLogs();
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      logs.unshift({ id: Date.now(), action, source, stateType, time: timeStr });
-      if (logs.length > 5) logs.pop();
-      try { localStorage.setItem(STORAGE_KEY_FEED, JSON.stringify(logs)); } catch (e) {}
+      const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      logs.unshift({ id: Date.now(), action, source, tagType, time: timeStr });
+      if (logs.length > 6) logs.pop();
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); } catch (e) {}
       renderLogs();
     }
 
@@ -1365,21 +1509,21 @@
       const logs = getLogs();
       els.activityFeedList.innerHTML = '';
       if (logs.length === 0) {
-        els.activityFeedList.innerHTML = '<li class="empty-feed">ยังไม่มีประวัติการสั่งงาน</li>';
+        els.activityFeedList.innerHTML = '<li class="empty-feed" style="text-align:center; padding:12px; color:var(--text-dim); font-size:0.8rem;">ยังไม่มีประวัติการสั่งงาน</li>';
         return;
       }
       logs.forEach(item => {
         const li = document.createElement('li');
         li.className = 'activity-item';
         li.innerHTML = `
-          <div class="feed-left">
-            <span class="feed-pill-dot ${item.stateType}"></span>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="feed-pill-dot ${item.tagType}"></span>
             <div>
               <strong style="color:var(--text-white);">${item.action}</strong>
               <div style="font-size:0.7rem; color:var(--text-gray);">${item.source}</div>
             </div>
           </div>
-          <span class="feed-time">${item.time}</span>
+          <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-dim);">${item.time}</span>
         `;
         els.activityFeedList.appendChild(li);
       });
@@ -1387,15 +1531,42 @@
 
     els.clearFeedBtn.addEventListener('click', () => {
       triggerHaptic(30);
-      localStorage.removeItem(STORAGE_KEY_FEED);
+      localStorage.removeItem(STORAGE_KEY);
       renderLogs();
-      showToast('ล้างประวัติการทำงานเรียบร้อย');
+      showToast('ล้างประวัติการทำงานแล้ว');
     });
 
-    /* Update Switch & Lighting UI */
-    function updateSwitchUI(isOn, sourceDescription = null) {
-      state.isSwitchOn = isOn;
+    /* ----------------------------------------------------
+       5. ROOM TAB SWITCHING (แบบ A)
+    ---------------------------------------------------- */
+    els.tabBtnLiving.addEventListener('click', () => {
+      triggerHaptic(20);
+      els.tabBtnLiving.classList.add('active');
+      els.tabBtnBedroom.classList.remove('active');
+      els.panelLiving.classList.add('active');
+      els.panelBedroom.classList.remove('active');
+    });
 
+    els.tabBtnBedroom.addEventListener('click', () => {
+      triggerHaptic(20);
+      els.tabBtnBedroom.classList.add('active');
+      els.tabBtnLiving.classList.remove('active');
+      els.panelBedroom.classList.add('active');
+      els.panelLiving.classList.remove('active');
+    });
+
+    /* ----------------------------------------------------
+       6. DEVICE 1: SMART SWITCH (ESP32-C6) ENGINE
+    ---------------------------------------------------- */
+    // Segmented dots
+    for (let i = 0; i < 16; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot-step';
+      els.dotsTrack.appendChild(d);
+    }
+
+    function updateSwitchUI(isOn, src = null) {
+      state.switch.isOn = isOn;
       const dots = els.dotsTrack.querySelectorAll('.dot-step');
       if (isOn) {
         els.roomCard.classList.add('is-on');
@@ -1405,15 +1576,9 @@
         els.stateBadgeTag.style.background = 'rgba(46, 232, 194, 0.15)';
         els.telemetryValue.textContent = '100% (Active Load)';
         els.telemetryValue.style.color = '#FF7D3C';
-
-        dots.forEach((dot, idx) => {
-          dot.classList.toggle('active', idx < 12);
-        });
+        dots.forEach((dot, idx) => dot.classList.toggle('active', idx < 12));
 
         els.timerTargetBadge.textContent = 'สั่งปิดเมื่อครบเวลา';
-        els.timerTargetBadge.style.color = '#FF7D3C';
-        els.timerTargetBadge.style.borderColor = 'rgba(255, 125, 60, 0.3)';
-        els.timerTargetBadge.style.background = 'rgba(255, 125, 60, 0.12)';
         els.targetActionHint.textContent = 'ครบเวลาจะ: ปิดไฟอัตโนมัติ';
       } else {
         els.roomCard.classList.remove('is-on');
@@ -1423,298 +1588,182 @@
         els.stateBadgeTag.style.background = 'rgba(0, 0, 0, 0.5)';
         els.telemetryValue.textContent = '0% (Standby)';
         els.telemetryValue.style.color = 'var(--text-gray)';
-
         dots.forEach(dot => dot.classList.remove('active'));
 
         els.timerTargetBadge.textContent = 'สั่งเปิดเมื่อครบเวลา';
-        els.timerTargetBadge.style.color = '#2EE8C2';
-        els.timerTargetBadge.style.borderColor = 'rgba(46, 232, 194, 0.3)';
-        els.timerTargetBadge.style.background = 'rgba(46, 232, 194, 0.12)';
         els.targetActionHint.textContent = 'ครบเวลาจะ: เปิดไฟอัตโนมัติ';
       }
 
-      if (sourceDescription) {
-        els.syncStatusCaption.textContent = `อัปเดต: ${sourceDescription}`;
+      if (src) {
+        els.syncStatusCaption.textContent = `อัปเดต: ${src}`;
       } else {
-        els.syncStatusCaption.textContent = state.isConnected 
-          ? 'แตะสวิตช์เพื่อเปิดหรือปิดไฟ' 
-          : 'เชื่อมต่อบลูทูธเพื่อเริ่มสั่งงาน';
+        els.syncStatusCaption.textContent = state.switch.isConnected ? 'แตะสวิตช์เพื่อเปิดหรือปิดไฟ' : 'เชื่อมต่อบลูทูธเพื่อเริ่มสั่งงาน';
       }
     }
 
-    /* Update BLE UI */
-    function updateBleUI(status, label = null) {
-      els.bleToggleBtn.classList.remove('connected', 'connecting', 'disconnected');
-      if (status === 'connected') {
-        els.bleToggleBtn.classList.add('connected');
-        els.bleStatusLabel.textContent = label || 'BLE Connected';
-      } else if (status === 'connecting') {
-        els.bleToggleBtn.classList.add('connecting');
-        els.bleStatusLabel.textContent = label || 'Connecting...';
-      } else {
-        els.bleToggleBtn.classList.add('disconnected');
-        els.bleStatusLabel.textContent = label || 'BLE Disconnected';
-      }
-    }
-
-    /* ----------------------------------------------------
-       BLUETOOTH DRIVER (ESP32-C6)
-    ---------------------------------------------------- */
-    if (!('bluetooth' in navigator)) {
-      els.compatBanner.style.display = 'block';
-    }
-
-    async function connectBLE() {
+    async function connectSwitchBLE() {
       if (!('bluetooth' in navigator)) {
         showToast('เบราว์เซอร์ไม่รองรับ Web Bluetooth API', 'error');
         return;
       }
       triggerHaptic(40);
-      state.userRequestedDisconnect = false;
-      state.isConnecting = true;
-      updateBleUI('connecting');
+      els.bleToggleBtn.className = 'ble-status-pill connecting';
+      els.bleStatusLabel.textContent = 'Connecting...';
 
       try {
         const device = await navigator.bluetooth.requestDevice({
-          filters: [{ name: BLE_CONFIG.DEVICE_NAME }],
-          optionalServices: [BLE_CONFIG.SERVICE_UUID]
+          filters: [{ name: BLE_SWITCH_CONFIG.NAME }],
+          optionalServices: [BLE_SWITCH_CONFIG.SERVICE_UUID]
         });
 
-        state.device = device;
-        device.addEventListener('gattserverdisconnected', onDisconnected);
-        await initGattSession(device);
-      } catch (err) {
-        state.isConnecting = false;
-        updateBleUI('disconnected');
-        if (err.name !== 'NotFoundError') {
-          showToast(`เชื่อมต่อไม่สำเร็จ: ${err.message}`, 'error');
-        }
-      }
-    }
+        state.switch.device = device;
+        device.addEventListener('gattserverdisconnected', () => {
+          state.switch.isConnected = false;
+          state.switch.characteristic = null;
+          els.bleToggleBtn.className = 'ble-status-pill disconnected';
+          els.bleStatusLabel.textContent = 'BLE Disconnected';
+          addLogEntry('สัญญาณไฟหลุด', 'SmartSwitch_C6', 'off');
+          showToast('สวิตช์ไฟหลุดการเชื่อมต่อ', 'error');
+        });
 
-    async function initGattSession(device) {
-      updateBleUI('connecting', 'GATT Pairing...');
-      const server = await device.gatt.connect();
-      state.server = server;
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(BLE_SWITCH_CONFIG.SERVICE_UUID);
+        const characteristic = await service.getCharacteristic(BLE_SWITCH_CONFIG.CHAR_UUID);
+        state.switch.characteristic = characteristic;
 
-      const service = await server.getPrimaryService(BLE_CONFIG.SERVICE_UUID);
-      const characteristic = await service.getCharacteristic(BLE_CONFIG.CHARACTERISTIC_UUID);
-      state.characteristic = characteristic;
+        await characteristic.startNotifications();
+        characteristic.addEventListener('characteristicvaluechanged', (e) => {
+          const raw = e.target.value.getUint8(0);
+          const isOn = (raw === 1);
+          const timeSince = Date.now() - state.switch.lastOpTime;
+          const src = (timeSince < 600 && state.switch.lastOpSource) ? state.switch.lastOpSource : 'สวิตช์บอร์ด ESP32-C6';
+          state.switch.lastOpSource = null;
+          updateSwitchUI(isOn, src);
+          addLogEntry(isOn ? 'เปิดไฟ (Living Room)' : 'ปิดไฟ (Living Room)', src, isOn ? 'on' : 'off');
+          triggerHaptic(isOn ? 50 : 35);
+        });
 
-      await characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', onNotification);
-
-      try {
-        const initialVal = await characteristic.readValue();
-        updateSwitchUI(initialVal.getUint8(0) === 1, 'ESP32 ซิงค์');
-      } catch (e) {}
-
-      state.isConnected = true;
-      state.isConnecting = false;
-      state.autoReconnectAttempts = 0;
-      updateBleUI('connected', 'Connected');
-      addLogEntry('เชื่อมต่อสำเร็จ', 'SmartSwitch_C6', 'info');
-      showToast('เชื่อมต่อ SmartSwitch_C6 สำเร็จ', 'success');
-      playChime(880, 0.2);
-    }
-
-    function onNotification(event) {
-      const raw = event.target.value.getUint8(0);
-      const isOn = (raw === 1);
-      const timeSinceOp = Date.now() - state.operationTimestamp;
-      const isFromApp = (timeSinceOp < 600) && state.lastOperationSource;
-      const src = isFromApp ? state.lastOperationSource : 'สวิตช์บอร์ด ESP32-C6';
-      state.lastOperationSource = null;
-
-      updateSwitchUI(isOn, src);
-      addLogEntry(isOn ? 'เปิดไฟ (Lightning)' : 'ปิดไฟ (Lightning)', src, isOn ? 'on' : 'off');
-      triggerHaptic(isOn ? 50 : 35);
-    }
-
-    function onDisconnected() {
-      state.isConnected = false;
-      state.isConnecting = false;
-      state.characteristic = null;
-      state.server = null;
-
-      if (state.userRequestedDisconnect) {
-        updateBleUI('disconnected');
-        addLogEntry('ตัดการเชื่อมต่อ', 'ผู้ใช้งานสั่ง', 'info');
-        showToast('ตัดการเชื่อมต่อเรียบร้อย');
-        return;
-      }
-
-      addLogEntry('สัญญาณหลุด', 'Bluetooth Lost', 'info');
-      tryAutoReconnect();
-    }
-
-    async function tryAutoReconnect() {
-      if (!state.device || state.userRequestedDisconnect) return;
-      if (state.autoReconnectAttempts >= BLE_CONFIG.AUTO_RECONNECT_MAX) {
-        updateBleUI('disconnected', 'Disconnected');
-        showToast('หลุดการเชื่อมต่อ กรุณากดเชื่อมต่อใหม่', 'warning');
-        return;
-      }
-
-      state.autoReconnectAttempts++;
-      const num = state.autoReconnectAttempts;
-      updateBleUI('connecting', `Reconnect ${num}/${BLE_CONFIG.AUTO_RECONNECT_MAX}`);
-
-      setTimeout(async () => {
-        if (state.isConnected || state.userRequestedDisconnect) return;
         try {
-          await initGattSession(state.device);
-        } catch (e) {
-          tryAutoReconnect();
-        }
-      }, BLE_CONFIG.AUTO_RECONNECT_DELAY_MS);
-    }
+          const initVal = await characteristic.readValue();
+          updateSwitchUI(initVal.getUint8(0) === 1, 'ESP32 ซิงค์');
+        } catch (e) {}
 
-    function disconnectBLE() {
-      triggerHaptic(40);
-      state.userRequestedDisconnect = true;
-      if (state.device && state.device.gatt.connected) {
-        state.device.gatt.disconnect();
-      } else {
-        updateBleUI('disconnected');
+        state.switch.isConnected = true;
+        els.bleToggleBtn.className = 'ble-status-pill connected';
+        els.bleStatusLabel.textContent = 'Connected';
+        addLogEntry('เชื่อมต่อสำเร็จ', 'SmartSwitch_C6', 'on');
+        showToast('เชื่อมต่อสวิตช์ไฟสำเร็จ', 'success');
+        playTone(880, 0.2);
+      } catch (err) {
+        els.bleToggleBtn.className = 'ble-status-pill disconnected';
+        els.bleStatusLabel.textContent = 'BLE Disconnected';
+        if (err.name !== 'NotFoundError') showToast('เชื่อมต่อไม่สำเร็จ: ' + err.message, 'error');
       }
     }
 
-    async function sendSwitchCommand(targetState, sourceName = 'แอปมือถือ') {
-      if (!state.isConnected || !state.characteristic) {
-        showToast('ยังไม่ได้เชื่อมต่อบลูทูธ กรุณากดเชื่อมต่อก่อน', 'warning');
+    async function sendSwitchCommand(targetState, src = 'แอปมือถือ') {
+      if (!state.switch.isConnected || !state.switch.characteristic) {
+        showToast('กรุณากดเชื่อมต่อสวิตช์ไฟก่อนครับ', 'warning');
         triggerHaptic(80);
-        return false;
+        return;
       }
-
       try {
-        state.lastOperationSource = sourceName;
-        state.operationTimestamp = Date.now();
+        state.switch.lastOpSource = src;
+        state.switch.lastOpTime = Date.now();
         const payload = new Uint8Array([targetState ? 1 : 0]);
-
-        if (state.characteristic.writeValueWithResponse) {
-          await state.characteristic.writeValueWithResponse(payload);
+        if (state.switch.characteristic.writeValueWithResponse) {
+          await state.switch.characteristic.writeValueWithResponse(payload);
         } else {
-          await state.characteristic.writeValue(payload);
+          await state.switch.characteristic.writeValue(payload);
         }
-
-        updateSwitchUI(targetState, sourceName);
-        return true;
+        updateSwitchUI(targetState, src);
       } catch (err) {
         showToast('ส่งคำสั่งไม่สำเร็จ: ' + err.message, 'error');
-        return false;
       }
     }
 
-    /* BLE Button listener */
     els.bleToggleBtn.addEventListener('click', () => {
-      if (state.isConnected || state.isConnecting) {
-        disconnectBLE();
+      if (state.switch.isConnected) {
+        if (state.switch.device && state.switch.device.gatt.connected) state.switch.device.gatt.disconnect();
       } else {
-        connectBLE();
+        connectSwitchBLE();
       }
     });
 
-    /* Master Switch Toggle */
-    els.masterToggleSwitch.addEventListener('click', async () => {
+    els.masterToggleSwitch.addEventListener('click', () => {
       triggerHaptic(40);
-      if (!state.isConnected) {
-        connectBLE();
+      if (!state.switch.isConnected) {
+        connectSwitchBLE();
         return;
       }
-      const nextState = !state.isSwitchOn;
-      await sendSwitchCommand(nextState, 'แอปมือถือ');
+      sendSwitchCommand(!state.switch.isOn, 'แอปมือถือ');
     });
 
-    /* ----------------------------------------------------
-       COUNTDOWN TIMER (WITH MANUAL INPUT & STEPPERS)
-    ---------------------------------------------------- */
+    // Countdown Timer logic
     function adjustMinutes(delta) {
       triggerHaptic(20);
       let val = parseInt(els.customMinutesInput.value, 10) || 0;
       val = Math.max(1, Math.min(1440, val + delta));
       els.customMinutesInput.value = val;
     }
-
     els.btnMinus5.addEventListener('click', () => adjustMinutes(-5));
     els.btnPlus5.addEventListener('click', () => adjustMinutes(5));
     els.btnPlus15.addEventListener('click', () => adjustMinutes(15));
 
-    function startTimer(minutes) {
-      if (!minutes || minutes <= 0) {
-        showToast('กรุณากรอกระยะเวลาที่มากกว่า 0 นาที', 'warning');
-        return;
-      }
-
+    function startTimer(mins) {
+      if (!mins || mins <= 0) return;
       triggerHaptic(40);
-      clearInterval(state.timerId);
+      clearInterval(state.timer.id);
+      state.timer.targetState = !state.switch.isOn;
+      state.timer.totalSeconds = mins * 60;
+      state.timer.remainingSeconds = state.timer.totalSeconds;
 
-      state.timerTargetState = !state.isSwitchOn;
-      state.timerTotalSeconds = minutes * 60;
-      state.timerRemainingSeconds = state.timerTotalSeconds;
-
-      // Update preset pills
       document.querySelectorAll('.preset-pill-btn').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.minutes) === minutes);
+        btn.classList.toggle('active', parseInt(btn.dataset.minutes) === mins);
       });
 
-      els.countdownActionTag.textContent = state.timerTargetState 
-        ? 'กำลังนับถอยหลังเพื่อ: เปิดไฟ' 
-        : 'กำลังนับถอยหลังเพื่อ: ปิดไฟ';
+      els.countdownActionTag.textContent = state.timer.targetState ? 'กำลังนับถอยหลังเพื่อ: เปิดไฟ' : 'กำลังนับถอยหลังเพื่อ: ปิดไฟ';
       els.activeCountdownBox.classList.add('is-active');
-
       updateCountdownDisplay();
-      showToast(`เริ่มตั้งเวลา ${minutes} นาที (${state.timerTargetState ? 'เปิดไฟ' : 'ปิดไฟ'})`, 'success');
+      showToast(`เริ่มตั้งเวลา ${mins} นาที (${state.timer.targetState ? 'เปิดไฟ' : 'ปิดไฟ'})`, 'success');
 
-      state.timerId = setInterval(() => {
-        state.timerRemainingSeconds--;
+      state.timer.id = setInterval(() => {
+        state.timer.remainingSeconds--;
         updateCountdownDisplay();
-
-        if (state.timerRemainingSeconds <= 0) {
-          clearInterval(state.timerId);
-          onTimerExpired();
+        if (state.timer.remainingSeconds <= 0) {
+          clearInterval(state.timer.id);
+          els.activeCountdownBox.classList.remove('is-active');
+          document.querySelectorAll('.preset-pill-btn').forEach(btn => btn.classList.remove('active'));
+          if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 250]);
+          playTone(587, 0.4);
+          showToast(`⏰ ครบเวลาแล้ว! กำลัง${state.timer.targetState ? 'เปิดไฟ' : 'ปิดไฟ'}`, 'success');
+          sendSwitchCommand(state.timer.targetState, 'ตัวนับเวลา (Timer)');
         }
       }, 1000);
     }
 
     function updateCountdownDisplay() {
-      const h = Math.floor(state.timerRemainingSeconds / 3600);
-      const m = Math.floor((state.timerRemainingSeconds % 3600) / 60);
-      const s = state.timerRemainingSeconds % 60;
-
-      if (h > 0) {
-        els.countdownDigits.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      } else {
-        els.countdownDigits.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      }
-
-      const fraction = (state.timerRemainingSeconds / state.timerTotalSeconds) * 100;
+      const h = Math.floor(state.timer.remainingSeconds / 3600);
+      const m = Math.floor((state.timer.remainingSeconds % 3600) / 60);
+      const s = state.timer.remainingSeconds % 60;
+      els.countdownDigits.textContent = (h > 0)
+        ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+        : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      const fraction = (state.timer.remainingSeconds / state.timer.totalSeconds) * 100;
       els.countdownProgressBar.style.width = `${fraction}%`;
     }
 
-    async function onTimerExpired() {
-      els.activeCountdownBox.classList.remove('is-active');
-      document.querySelectorAll('.preset-pill-btn').forEach(btn => btn.classList.remove('active'));
-
-      if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 250]);
-      playChime(587, 0.4);
-
-      showToast(`⏰ ครบเวลาแล้ว! กำลัง${state.timerTargetState ? 'เปิดไฟ' : 'ปิดไฟ'}`, 'success');
-      await sendSwitchCommand(state.timerTargetState, 'ตัวนับเวลา (Timer)');
-    }
-
-    function cancelTimer() {
+    els.cancelCountdownBtn.addEventListener('click', () => {
       triggerHaptic(30);
-      clearInterval(state.timerId);
-      state.timerId = null;
+      clearInterval(state.timer.id);
+      state.timer.id = null;
       els.activeCountdownBox.classList.remove('is-active');
       document.querySelectorAll('.preset-pill-btn').forEach(btn => btn.classList.remove('active'));
-      showToast('ยกเลิกการตั้งเวลานับถอยหลังแล้ว');
-    }
+      showToast('ยกเลิกการนับถอยหลังแล้ว');
+    });
 
     els.btnStartCustomTimer.addEventListener('click', () => {
-      const mins = parseInt(els.customMinutesInput.value, 10);
-      startTimer(mins);
+      startTimer(parseInt(els.customMinutesInput.value, 10));
     });
 
     document.querySelectorAll('.preset-pill-btn').forEach(btn => {
@@ -1725,35 +1774,206 @@
       });
     });
 
-    els.cancelCountdownBtn.addEventListener('click', cancelTimer);
+    /* ----------------------------------------------------
+       7. DEVICE 2: SAMSUNG AC REMOTE (ESP32-C3) ENGINE
+    ---------------------------------------------------- */
+    function updateAcUI() {
+      // Temperature
+      els.acTempVal.textContent = state.ac.temp;
+
+      // Power
+      if (state.ac.power === 1) {
+        els.acPowerStateBadge.style.color = '#38BDF8';
+        els.acPowerStateText.textContent = 'สถานะ: เปิดแอร์ (ON)';
+        els.btnAcPowerOn.classList.add('active');
+        els.btnAcPowerOff.classList.remove('active');
+      } else {
+        els.acPowerStateBadge.style.color = '#FDA4AF';
+        els.acPowerStateText.textContent = 'สถานะ: ปิดแอร์ (OFF)';
+        els.btnAcPowerOn.classList.remove('active');
+        els.btnAcPowerOff.classList.add('active');
+      }
+
+      // Mode summary
+      const modeNames = { 1: '❄️ Cool', 2: '💧 Dry', 3: '🌀 Fan' };
+      const fanNames = { 0: 'Auto', 1: 'เบา (1)', 2: 'กลาง (2)', 3: 'แรง (3)' };
+      els.acCurrentModeSummary.textContent = `${modeNames[state.ac.mode] || 'Cool'} • พัดลม ${fanNames[state.ac.fan] || 'Auto'}`;
+
+      // Update active pills
+      document.querySelectorAll('#acModePills .pill-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.mode, 10) === state.ac.mode);
+      });
+
+      document.querySelectorAll('#acFanPills .pill-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.fan, 10) === state.ac.fan);
+      });
+    }
+
+    async function connectAcBLE() {
+      if (!('bluetooth' in navigator)) {
+        showToast('เบราว์เซอร์ไม่รองรับ Web Bluetooth API', 'error');
+        return;
+      }
+      triggerHaptic(40);
+      els.btnConnectAC.className = 'ble-status-pill connecting';
+      els.acStatusLabel.textContent = 'ค้นหาแอร์...';
+      els.acLogText.textContent = 'กำลังค้นหาอุปกรณ์ ESP32C3-AC-Remote...';
+
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ name: BLE_AC_CONFIG.NAME }],
+          optionalServices: [BLE_AC_CONFIG.SERVICE_UUID]
+        });
+
+        state.ac.device = device;
+        device.addEventListener('gattserverdisconnected', () => {
+          state.ac.isConnected = false;
+          state.ac.characteristic = null;
+          els.btnConnectAC.className = 'ble-status-pill disconnected';
+          els.acStatusLabel.textContent = 'เชื่อมต่อใหม่';
+          els.acLogText.textContent = '🔴 หลุดการเชื่อมต่อ';
+          addLogEntry('สัญญาณแอร์หลุด', 'Samsung AC (C3)', 'ac');
+          showToast('แอร์หลุดการเชื่อมต่อ', 'error');
+        });
+
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(BLE_AC_CONFIG.SERVICE_UUID);
+        state.ac.characteristic = await service.getCharacteristic(BLE_AC_CONFIG.CHAR_UUID);
+
+        state.ac.isConnected = true;
+        els.btnConnectAC.className = 'ble-status-pill connected';
+        els.acStatusLabel.textContent = 'เชื่อมต่อแล้ว';
+        els.acLogText.textContent = '🟢 เชื่อมต่อพร้อมสั่งงาน';
+        addLogEntry('เชื่อมต่อสำเร็จ', 'Samsung AC (C3)', 'ac');
+        showToast('เชื่อมต่อรีโมทแอร์สำเร็จ', 'ac');
+        playTone(784, 0.25);
+      } catch (err) {
+        els.btnConnectAC.className = 'ble-status-pill disconnected';
+        els.acStatusLabel.textContent = 'เชื่อมต่อแอร์';
+        els.acLogText.textContent = '🔴 เชื่อมต่อล้มเหลว: ' + err.message;
+        if (err.name !== 'NotFoundError') showToast('เชื่อมต่อแอร์ไม่สำเร็จ', 'error');
+      }
+    }
+
+    async function sendAcCommand() {
+      if (!state.ac.characteristic) {
+        els.acLogText.textContent = '⚠️ กรุณากดเชื่อมต่อแอร์ก่อน';
+        showToast('กรุณากดเชื่อมต่อรีโมทแอร์ก่อนครับ', 'warning');
+        triggerHaptic(80);
+        return;
+      }
+      if (state.ac.isSending) return;
+
+      // โครงสร้าง 4 ไบต์: [Power, Mode, Temp, Fan]
+      const payload = new Uint8Array([state.ac.power, state.ac.mode, state.ac.temp, state.ac.fan]);
+
+      try {
+        state.ac.isSending = true;
+        const pwrTxt = state.ac.power ? 'ON' : 'OFF';
+        els.acLogText.textContent = `กำลังส่ง: ${pwrTxt} | ${state.ac.temp}°C...`;
+
+        if (state.ac.characteristic.writeValueWithResponse) {
+          await state.ac.characteristic.writeValueWithResponse(payload);
+        } else {
+          await state.ac.characteristic.writeValue(payload);
+        }
+
+        els.acLogText.textContent = `✅ ส่งสำเร็จ (${pwrTxt}, ${state.ac.temp}°C)`;
+        addLogEntry(`แอร์: ${pwrTxt} • ${state.ac.temp}°C`, 'รีโมทแอร์ (Samsung)', 'ac');
+        showToast(`ยิงสัญญาณแอร์: ${pwrTxt} ${state.ac.temp}°C`, 'ac');
+        playTone(659, 0.15);
+      } catch (err) {
+        console.error(err);
+        els.acLogText.textContent = '❌ ส่งไม่สำเร็จ: ' + err.message;
+        showToast('ส่งคำสั่งไม่สำเร็จ: ' + err.message, 'error');
+      } finally {
+        state.ac.isSending = false;
+      }
+    }
+
+    // Connect Button
+    els.btnConnectAC.addEventListener('click', () => {
+      if (state.ac.isConnected) {
+        if (state.ac.device && state.ac.device.gatt.connected) state.ac.device.gatt.disconnect();
+      } else {
+        connectAcBLE();
+      }
+    });
+
+    // Temperature Steppers (กดแล้วสั่งเปิดแอร์ + ยิงคำสั่งทันที)
+    function adjustAcTemp(delta) {
+      triggerHaptic(30);
+      state.ac.temp = Math.min(30, Math.max(18, state.ac.temp + delta));
+      state.ac.power = 1; // เมื่อปรับอุณหภูมิ ให้ถือว่าสั่งเปิดแอร์ด้วย
+      updateAcUI();
+      sendAcCommand();
+    }
+    els.btnTempMinus.addEventListener('click', () => adjustAcTemp(-1));
+    els.btnTempPlus.addEventListener('click', () => adjustAcTemp(1));
+
+    // Power Buttons (ON / OFF)
+    els.btnAcPowerOn.addEventListener('click', () => {
+      triggerHaptic(40);
+      state.ac.power = 1;
+      updateAcUI();
+      sendAcCommand();
+    });
+
+    els.btnAcPowerOff.addEventListener('click', () => {
+      triggerHaptic(40);
+      state.ac.power = 0;
+      updateAcUI();
+      sendAcCommand();
+    });
+
+    // Mode Pills
+    document.querySelectorAll('#acModePills .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        triggerHaptic(30);
+        state.ac.mode = parseInt(btn.dataset.mode, 10);
+        updateAcUI();
+        sendAcCommand();
+      });
+    });
+
+    // Fan Pills
+    document.querySelectorAll('#acFanPills .pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        triggerHaptic(30);
+        state.ac.fan = parseInt(btn.dataset.fan, 10);
+        updateAcUI();
+        sendAcCommand();
+      });
+    });
+
+    // Resend Command Button
+    els.btnAcResend.addEventListener('click', () => {
+      triggerHaptic(40);
+      sendAcCommand();
+    });
 
     /* ----------------------------------------------------
-       PWA INSTALLATION
+       8. LIVE CLOCK & INITIALIZATION
     ---------------------------------------------------- */
-    let deferredPrompt = null;
+    function updateClock() {
+      const now = new Date();
+      els.liveClock.textContent = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      els.currentDateStr.textContent = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
       });
     }
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      els.pwaBanner.classList.add('show');
-    });
-
-    els.pwaInstallBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      els.pwaBanner.classList.remove('show');
-    });
-
-    /* Initial Render */
+    // Initial Renders
     renderLogs();
     updateSwitchUI(false);
+    updateAcUI();
   </script>
 </body>
 </html>
